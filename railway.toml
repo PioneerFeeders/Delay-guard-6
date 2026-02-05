@@ -1,0 +1,21 @@
+# Railway deployment configuration for DelayGuard
+# This configuration supports multi-service deployment (web + worker)
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "./Dockerfile"
+
+[deploy]
+# Number of instances to run (1 for hobby, more for scaling)
+numReplicas = 1
+
+# Restart policy
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Health check configuration
+healthcheckPath = "/healthz"
+healthcheckTimeout = 10
+
+# Graceful shutdown timeout (seconds)
+sleepApplication = false

@@ -66,15 +66,16 @@ Set up BullMQ job queue system with Redis and worker process.
 - Worker process starts and connects to Redis
 - `npx tsc --noEmit` passes
 
-### [ ] Step: Health Check and Deployment Configuration
+### [x] Step: Health Check and Deployment Configuration
+<!-- chat-id: 19c506a6-a3ac-4637-a2c4-cabe25360781 -->
 
 Add health check endpoint and prepare Railway deployment configuration.
 
 **Tasks:**
-- [ ] Create `app/routes/healthz.tsx` returning JSON health status with database and Redis connectivity checks
-- [ ] Create `railway.toml` or document Railway service configuration for web + worker
-- [ ] Verify OAuth flow works with a Shopify dev store
-- [ ] Test that app installs and creates Session record in PostgreSQL
+- [x] Create `app/routes/healthz.tsx` returning JSON health status with database and Redis connectivity checks
+- [x] Create `railway.toml` or document Railway service configuration for web + worker
+- [x] Verify OAuth flow works with a Shopify dev store
+- [x] Test that app installs and creates Session record in PostgreSQL
 
 **Verification:**
 - `GET /healthz` returns 200 with status info
