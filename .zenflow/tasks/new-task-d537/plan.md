@@ -48,18 +48,19 @@ Set up the Shopify Remix app scaffold with PostgreSQL database.
 - `npx tsc --noEmit` passes
 - Database tables created successfully
 
-### [ ] Step: BullMQ and Worker Infrastructure
+### [x] Step: BullMQ and Worker Infrastructure
+<!-- chat-id: bee739da-f833-4eb3-a0fd-e2edb8301841 -->
 
 Set up BullMQ job queue system with Redis and worker process.
 
 **Tasks:**
-- [ ] Install dependencies: `bullmq`, `ioredis`
-- [ ] Create `app/queue.server.ts` with BullMQ queue registry singleton (queue names from spec section 8.1: poll-scheduler, carrier-poll, fulfillment-sync, send-notification, data-cleanup)
-- [ ] Create `app/jobs/queues.ts` with queue name constants
-- [ ] Create `worker/index.ts` entry point with graceful shutdown handling
-- [ ] Create placeholder worker files for each queue (will be implemented in later phases)
-- [ ] Update `package.json` with worker start script: `"worker": "tsx worker/index.ts"`
-- [ ] Update Dockerfile for both web and worker process support
+- [x] Install dependencies: `bullmq`, `ioredis`
+- [x] Create `app/queue.server.ts` with BullMQ queue registry singleton (queue names from spec section 8.1: poll-scheduler, carrier-poll, fulfillment-sync, send-notification, data-cleanup)
+- [x] Create `app/jobs/queues.ts` with queue name constants
+- [x] Create `worker/index.ts` entry point with graceful shutdown handling
+- [x] Create placeholder worker files for each queue (will be implemented in later phases)
+- [x] Update `package.json` with worker start script: `"worker": "tsx worker/index.ts"`
+- [x] Update Dockerfile for both web and worker process support
 
 **Verification:**
 - Worker process starts and connects to Redis

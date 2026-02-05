@@ -11,8 +11,8 @@ ENV NODE_ENV=production
 # Copy dependency files
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+# Install dependencies (including dev dependencies for tsx)
+RUN npm ci && npm cache clean --force
 
 # Generate Prisma client
 COPY prisma ./prisma
@@ -24,5 +24,6 @@ COPY . .
 # Build the Remix app
 RUN npm run build
 
-# Run migrations and start the server
+# Default command runs the web server
+# Override with: CMD ["npm", "run", "worker"] for worker process
 CMD ["npm", "run", "docker-start"]
