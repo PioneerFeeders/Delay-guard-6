@@ -86,17 +86,18 @@ Add health check endpoint and prepare Railway deployment configuration.
 
 ## Phase 2: Shopify Integration (Data Ingestion)
 
-### [ ] Step: Merchant Management and Authentication
+### [x] Step: Merchant Management and Authentication
+<!-- chat-id: b35ab555-df5c-45a5-ae42-995c19528772 -->
 
 Implement merchant record creation on app install.
 
 **Tasks:**
-- [ ] Create `app/services/merchant.service.ts` with createOrUpdateMerchant function
-- [ ] Modify `app/routes/app.tsx` loader to create Merchant record on first load (after OAuth)
-- [ ] Generate random poll offset (0-239) for each new merchant
-- [ ] Set default settings JSON structure per spec section 4.3
-- [ ] Add Zod schema for MerchantSettings validation in `app/lib/validation.ts`
-- [ ] Write unit tests for merchant creation logic
+- [x] Create `app/services/merchant.service.ts` with createOrUpdateMerchant function
+- [x] Modify `app/routes/app.tsx` loader to create Merchant record on first load (after OAuth)
+- [x] Generate random poll offset (0-239) for each new merchant
+- [x] Set default settings JSON structure per spec section 4.3
+- [x] Add Zod schema for MerchantSettings validation in `app/lib/validation.ts`
+- [x] Write unit tests for merchant creation logic
 
 **Verification:**
 - On app install, Merchant record created with correct defaults

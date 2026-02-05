@@ -18,7 +18,9 @@
     "graphql-codegen": "graphql-codegen",
     "vite": "vite",
     "worker": "tsx worker/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "type": "module",
   "engines": {
