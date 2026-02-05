@@ -1,0 +1,46 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "YOUR_CLIENT_ID"
+name = "DelayGuard"
+handle = "delayguard"
+application_url = "https://your-app.railway.app"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_orders,read_fulfillments,write_fulfillments,read_customers"
+
+[auth]
+redirect_urls = [
+  "https://your-app.railway.app/auth/callback",
+  "https://your-app.railway.app/auth/shopify/callback",
+  "https://your-app.railway.app/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2025-01"
+
+[[webhooks.subscriptions]]
+topics = ["fulfillments/create"]
+uri = "/webhooks/fulfillments/create"
+
+[[webhooks.subscriptions]]
+topics = ["fulfillments/update"]
+uri = "/webhooks/fulfillments/update"
+
+[[webhooks.subscriptions]]
+topics = ["app/uninstalled"]
+uri = "/webhooks/app/uninstalled"
+
+[app_proxy]
+# Uncomment if using app proxy
+# url = "https://your-app.railway.app"
+# subpath = "apps"
+# prefix = "apps"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "your-dev-store.myshopify.com"

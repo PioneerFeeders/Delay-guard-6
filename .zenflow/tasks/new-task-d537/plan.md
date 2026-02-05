@@ -28,19 +28,20 @@ Create a detailed implementation plan based on the technical specification.
 
 ## Phase 1: Foundation
 
-### [ ] Step: Project Scaffold and Database Setup
+### [x] Step: Project Scaffold and Database Setup
+<!-- chat-id: b293fe63-1de5-4a4e-a2d6-085abd18a510 -->
 
 Set up the Shopify Remix app scaffold with PostgreSQL database.
 
 **Tasks:**
-- [ ] Scaffold project using `npx @shopify/create-app@latest` with Remix template
-- [ ] Create `.gitignore` with node_modules/, dist/, build/, .cache/, *.log, .env
-- [ ] Create `.env.example` with all required environment variables from spec section 1.5
-- [ ] Switch Prisma datasource from SQLite to PostgreSQL in `prisma/schema.prisma`
-- [ ] Implement full Prisma schema from spec section 4.2 (Session, Merchant, Shipment, TrackingEvent, NotificationLog, ResolutionLog with all enums)
-- [ ] Run initial Prisma migration
-- [ ] Create `app/db.server.ts` with Prisma client singleton pattern
-- [ ] Update `shopify.server.ts` to use Prisma session storage with PostgreSQL
+- [x] Scaffold project using `npx @shopify/create-app@latest` with Remix template
+- [x] Create `.gitignore` with node_modules/, dist/, build/, .cache/, *.log, .env
+- [x] Create `.env.example` with all required environment variables from spec section 1.5
+- [x] Switch Prisma datasource from SQLite to PostgreSQL in `prisma/schema.prisma`
+- [x] Implement full Prisma schema from spec section 4.2 (Session, Merchant, Shipment, TrackingEvent, NotificationLog, ResolutionLog with all enums)
+- [x] Run initial Prisma migration
+- [x] Create `app/db.server.ts` with Prisma client singleton pattern
+- [x] Update `shopify.server.ts` to use Prisma session storage with PostgreSQL
 
 **Verification:**
 - `npx prisma validate` passes

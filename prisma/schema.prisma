@@ -1,0 +1,206 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ── Shopify Session (from template) ──────────────────────────
+
+model Session {
+  id          String    @id
+  shop        String
+  state       String
+  isOnline    Boolean   @default(false)
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+
+  @@index([shop])
+}
+
+// ── Merchants ────────────────────────────────────────────────
+
+model Merchant {
+  id               String        @id @default(cuid())
+  shopifyShopId    String        @unique
+  shopDomain       String
+  email            String
+  timezone         String        @default("America/New_York")
+  settings         Json          @default("{}")
+  planTier         PlanTier      @default(STARTER)
+  billingStatus    BillingStatus @default(PENDING)
+  randomPollOffset Int           @default(0) // 0-239 minutes
+  installedAt      DateTime      @default(now())
+  onboardingDone   Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  shipments        Shipment[]
+  notificationLogs NotificationLog[]
+}
+
+enum PlanTier {
+  STARTER
+  PROFESSIONAL
+  BUSINESS
+  ENTERPRISE
+}
+
+enum BillingStatus {
+  PENDING
+  ACTIVE
+  CANCELLED
+}
+
+// ── Shipments ────────────────────────────────────────────────
+
+model Shipment {
+  id                      String         @id @default(cuid())
+  merchantId              String
+  shopifyOrderId          String
+  shopifyFulfillmentId    String
+  orderNumber             String
+  trackingNumber          String
+  carrier                 Carrier        @default(UNKNOWN)
+  serviceLevel            String?
+  customerName            String
+  customerEmail           String
+  customerPhone           String?
+  shippingAddress         Json?
+  shipDate                DateTime
+  expectedDeliveryDate    DateTime?
+  expectedDeliverySource  DeliverySource @default(DEFAULT)
+  currentStatus           String         @default("pending")
+  isDelayed               Boolean        @default(false)
+  delayFlaggedAt          DateTime?
+  daysDelayed             Int            @default(0)
+  lastCarrierStatus       String?
+  lastScanLocation        String?
+  lastScanTime            DateTime?
+  carrierExceptionCode    String?
+  carrierExceptionReason  String?
+  rescheduledDeliveryDate DateTime?
+  fulfillmentLocationId   String?
+  fulfillmentLocationName String?
+  orderValue              Decimal?       @db.Decimal(10, 2)
+  isResolved              Boolean        @default(false)
+  resolvedAt              DateTime?
+  resolvedBy              String?
+  resolutionReason        String?
+  resolutionNotes         String?
+  notificationSent        Boolean        @default(false)
+  notificationSentAt      DateTime?
+  isDelivered             Boolean        @default(false)
+  deliveredAt             DateTime?
+  isArchived              Boolean        @default(false)
+  lastPolledAt            DateTime?
+  nextPollAt              DateTime?
+  pollErrorCount          Int            @default(0)
+  hasCarrierScan          Boolean        @default(false)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  merchant         Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  trackingEvents   TrackingEvent[]
+  notificationLogs NotificationLog[]
+  resolutionLogs   ResolutionLog[]
+
+  @@unique([merchantId, shopifyFulfillmentId])
+  @@index([merchantId, isDelayed])
+  @@index([merchantId, isArchived, isDelivered])
+  @@index([merchantId, carrier])
+  @@index([nextPollAt])
+  @@index([trackingNumber])
+  @@index([merchantId, shipDate])
+  @@index([merchantId, expectedDeliveryDate])
+}
+
+enum Carrier {
+  UPS
+  FEDEX
+  USPS
+  UNKNOWN
+}
+
+enum DeliverySource {
+  CARRIER
+  DEFAULT
+  MERCHANT_OVERRIDE
+}
+
+// ── Tracking Events ──────────────────────────────────────────
+
+model TrackingEvent {
+  id               String   @id @default(cuid())
+  shipmentId       String
+  eventTimestamp   DateTime
+  eventType        String
+  eventDescription String
+  locationCity     String?
+  locationState    String?
+  locationCountry  String?
+  rawCarrierData   Json?
+  createdAt        DateTime @default(now())
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId, eventTimestamp])
+}
+
+// ── Notification Log ─────────────────────────────────────────
+
+model NotificationLog {
+  id               String             @id @default(cuid())
+  shipmentId       String
+  merchantId       String
+  sentAt           DateTime           @default(now())
+  sentBy           String
+  recipientEmail   String
+  emailSubject     String
+  emailBodyPreview String
+  status           NotificationStatus @default(SENT)
+  createdAt        DateTime           @default(now())
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([merchantId])
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+}
+
+// ── Resolution Log ───────────────────────────────────────────
+
+model ResolutionLog {
+  id                          String           @id @default(cuid())
+  shipmentId                  String
+  resolvedAt                  DateTime         @default(now())
+  resolvedBy                  String
+  resolutionReason            ResolutionReason
+  notes                       String?
+  timeDelayedBeforeResolution Int? // minutes
+  createdAt                   DateTime         @default(now())
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+}
+
+enum ResolutionReason {
+  CONTACTED_CUSTOMER
+  SENT_NOTIFICATION
+  PARTIAL_REFUND
+  FULL_REFUND
+  RESHIPPED
+  DELIVERED_FALSE_ALARM
+  CUSTOMER_CANCELLED
+  OTHER
+}

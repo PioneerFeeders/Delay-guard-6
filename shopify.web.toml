@@ -1,0 +1,12 @@
+# Defines the Shopify web application configuration for the Remix app
+
+[commands]
+dev = "npm exec remix vite:dev"
+build = "npm exec remix vite:build"
+
+[roles]
+frontend = []
+backend = [ "api", "ssr" ]
+
+[[webhooks.subscriptions]]
+topics = [ "app/uninstalled" ]
