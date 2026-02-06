@@ -13,6 +13,7 @@ declare module "@remix-run/node" {
 export default defineConfig({
   server: {
     port: Number(process.env.PORT || 3000),
+    allowedHosts: [".trycloudflare.com"],
     fs: {
       // Restrict files that could be served by Vite's dev server.  Accessing
       // files outside this directory list that aren't imported from an allowed

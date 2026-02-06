@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "YOUR_CLIENT_ID"
+client_id = "18ae87dfbe26e41f27d47ede1f692961"
 name = "DelayGuard"
-handle = "delayguard"
+handle = "delayguard-dev"
 application_url = "https://your-app.railway.app"
 embedded = true
 
@@ -32,7 +32,7 @@ uri = "/webhooks/fulfillments/update"
 topics = ["app/uninstalled"]
 uri = "/webhooks/app/uninstalled"
 
-[app_proxy]
+# [app_proxy]
 # Uncomment if using app proxy
 # url = "https://your-app.railway.app"
 # subpath = "apps"
@@ -43,4 +43,4 @@ embedded = false
 
 [build]
 automatically_update_urls_on_dev = true
-dev_store_url = "your-dev-store.myshopify.com"
+dev_store_url = "test-store-1100000000000000000000000000000003980.myshopify.com"
