@@ -25,7 +25,7 @@ import {
   validateTemplate,
   renderTemplate,
   type TemplateContext,
-} from "~/services/notification.service";
+} from "~/lib/notification-templates";
 
 /**
  * Sample data for template preview
