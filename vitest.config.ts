@@ -8,8 +8,30 @@ export default defineConfig({
     include: ["**/*.test.ts"],
     exclude: ["node_modules", "build", "dist"],
     coverage: {
-      reporter: ["text", "json", "html"],
-      exclude: ["node_modules", "build", "dist", "**/*.test.ts"],
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
+      include: [
+        "app/services/**/*.ts",
+        "app/lib/**/*.ts",
+        "app/jobs/**/*.ts",
+        "worker/**/*.ts",
+      ],
+      exclude: [
+        "node_modules",
+        "build",
+        "dist",
+        "**/*.test.ts",
+        "**/__tests__/**",
+        "app/e2e/**",
+        "**/*.d.ts",
+      ],
+      // Aim for >80% coverage on business logic
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 60,
+        statements: 70,
+      },
     },
   },
   resolve: {

@@ -103,38 +103,40 @@ Implement merchant record creation on app install.
 - On app install, Merchant record created with correct defaults
 - Tests pass: `npx vitest run`
 
-### [ ] Step: Webhook Handlers for Fulfillments
+### [x] Step: Webhook Handlers for Fulfillments
+<!-- chat-id: 9a5666d9-a4a8-4e7c-9cd2-fe2a32fd8b5f -->
 
 Implement webhook handlers for fulfillment events.
 
 **Tasks:**
-- [ ] Update `shopify.app.toml` with webhook subscriptions from spec section 5.4
-- [ ] Create `app/routes/webhooks.fulfillments.create.tsx` - validates HMAC, creates Shipment record, enqueues carrier-poll job
-- [ ] Create `app/routes/webhooks.fulfillments.update.tsx` - updates tracking number/carrier if changed
-- [ ] Create `app/routes/webhooks.app.uninstalled.tsx` - marks merchant uninstalled, schedules data purge
-- [ ] Create `app/services/shipment.service.ts` with createShipmentFromFulfillment function
-- [ ] Implement carrier detection logic in `app/services/carriers/carrier.service.ts` (from spec section 6.2)
-- [ ] Add Zod schemas for webhook payload validation
-- [ ] Write unit tests for carrier detection and shipment creation
+- [x] Update `shopify.app.toml` with webhook subscriptions from spec section 5.4
+- [x] Create `app/routes/webhooks.fulfillments.create.tsx` - validates HMAC, creates Shipment record, enqueues carrier-poll job
+- [x] Create `app/routes/webhooks.fulfillments.update.tsx` - updates tracking number/carrier if changed
+- [x] Create `app/routes/webhooks.app.uninstalled.tsx` - marks merchant uninstalled, schedules data purge
+- [x] Create `app/services/shipment.service.ts` with createShipmentFromFulfillment function
+- [x] Implement carrier detection logic in `app/services/carriers/carrier.service.ts` (from spec section 6.2)
+- [x] Add Zod schemas for webhook payload validation
+- [x] Write unit tests for carrier detection and shipment creation
 
 **Verification:**
 - Webhook trigger via `shopify webhook trigger fulfillments/create` creates Shipment record
 - Carrier correctly detected from tracking_company and tracking number patterns
 - Tests pass
 
-### [ ] Step: Initial Fulfillment Sync
+### [x] Step: Initial Fulfillment Sync
+<!-- chat-id: 5582bd23-b4a0-49bf-a60b-d5533dece0b8 -->
 
 Implement initial sync of fulfillments from Shopify.
 
 **Tasks:**
-- [ ] Create `app/services/sync.service.ts` with syncFulfillments function
-- [ ] Implement GraphQL query for fulfillments from last 5 days with pagination
-- [ ] Create `app/jobs/fulfillment-sync.job.ts` job definition
-- [ ] Create `worker/fulfillment-sync.worker.ts` with progress tracking
-- [ ] Handle rate limiting (GraphQL cost-based throttling)
-- [ ] Skip already-synced fulfillments (by shopifyFulfillmentId)
-- [ ] Create `app/routes/api.sync.tsx` for manual re-sync trigger
-- [ ] Write unit tests for sync logic
+- [x] Create `app/services/sync.service.ts` with syncFulfillments function
+- [x] Implement GraphQL query for fulfillments from last 5 days with pagination
+- [x] Create `app/jobs/fulfillment-sync.job.ts` job definition
+- [x] Create `worker/fulfillment-sync.worker.ts` with progress tracking
+- [x] Handle rate limiting (GraphQL cost-based throttling)
+- [x] Skip already-synced fulfillments (by shopifyFulfillmentId)
+- [x] Create `app/routes/api.sync.tsx` for manual re-sync trigger
+- [x] Write unit tests for sync logic
 
 **Verification:**
 - Initial sync pulls fulfillments from test store
@@ -145,75 +147,79 @@ Implement initial sync of fulfillments from Shopify.
 
 ## Phase 3: Carrier Integration & Delay Detection
 
-### [ ] Step: Carrier Adapter Interface and UPS Integration
+### [x] Step: Carrier Adapter Interface and UPS Integration
+<!-- chat-id: f34bf3d8-44ff-4869-80bf-5f59505f26d6 -->
 
 Implement carrier adapter interface and UPS Track API integration.
 
 **Tasks:**
-- [ ] Create `app/services/carriers/carrier.interface.ts` with TrackingResult, TrackingEvent, CarrierAdapter interfaces from spec section 6.1
-- [ ] Create `app/services/carriers/carrier.types.ts` with shared types
-- [ ] Create `app/services/carriers/ups.adapter.ts`:
+- [x] Create `app/services/carriers/carrier.interface.ts` with TrackingResult, TrackingEvent, CarrierAdapter interfaces from spec section 6.1
+- [x] Create `app/services/carriers/carrier.types.ts` with shared types
+- [x] Create `app/services/carriers/ups.adapter.ts`:
   - OAuth 2.0 token management with Redis caching (TTL = expires_in - 60s)
   - Track API call to `https://onlinetools.ups.com/api/track/v1/details/{trackingNumber}`
   - Parse response into TrackingResult (exception: status.type === "X", delivered: status.type === "D")
   - Build tracking URL
-- [ ] Add Zod schema for UPS API response validation
-- [ ] Write unit tests with mocked UPS API responses
+- [x] Add Zod schema for UPS API response validation
+- [x] Write unit tests with mocked UPS API responses
 
 **Verification:**
 - UPS adapter correctly parses sample API responses
 - Token caching works (Redis key: carrier_token:ups)
 - Tests pass
 
-### [ ] Step: FedEx and USPS Carrier Adapters
+### [x] Step: FedEx and USPS Carrier Adapters
+<!-- chat-id: a0c14916-658e-481d-bbb0-0b604f87379b -->
 
 Implement FedEx and USPS carrier adapters.
 
 **Tasks:**
-- [ ] Create `app/services/carriers/fedex.adapter.ts`:
+- [x] Create `app/services/carriers/fedex.adapter.ts`:
   - OAuth 2.0 client credentials with Redis caching
   - Track API call to `https://apis.fedex.com/track/v1/trackingnumbers`
   - Parse response (exception: statusByLocale keywords, delivered: code === "DL")
   - Build tracking URL
-- [ ] Create `app/services/carriers/usps.adapter.ts`:
+- [x] Create `app/services/carriers/usps.adapter.ts`:
   - User ID authentication
   - XML API call to `https://secure.shippingapis.com/ShippingAPI.dll`
   - Parse XML response (exception: "Arriving Late", delivered: "Delivered")
   - Build tracking URL
-- [ ] Update `carrier.service.ts` to delegate to correct adapter based on carrier enum
-- [ ] Add Zod schemas for FedEx and USPS API response validation
-- [ ] Write unit tests with mocked API responses for both carriers
+- [x] Update `carrier.service.ts` to delegate to correct adapter based on carrier enum
+- [x] Add Zod schemas for FedEx and USPS API response validation
+- [x] Write unit tests with mocked API responses for both carriers
 
 **Verification:**
 - All three adapters correctly parse sample responses
 - Carrier service routes to correct adapter
 - Tests pass
 
-### [ ] Step: Delay Detection Service
+### [x] Step: Delay Detection Service
+<!-- chat-id: 6269682c-4e5e-4bdb-b58d-0511f90d2179 -->
 
 Implement delay detection logic.
 
 **Tasks:**
-- [ ] Create `app/services/delay-detection.service.ts` with evaluateDelay function from spec section 7.1
-- [ ] Implement default delivery windows lookup (spec section 7.2)
-- [ ] Create `app/lib/business-days.ts` for business day calculations using date-fns
-- [ ] Service level normalization (fuzzy matching for "UPS GROUND", "Ground", "UPS Ground" -> ups_ground)
-- [ ] Support merchant overrides from settings.deliveryWindows
-- [ ] Grace period from settings.delayThresholdHours (default: 8)
-- [ ] Write comprehensive unit tests for delay scenarios: carrier exception, past due, grace period, rescheduled
+- [x] Create `app/services/delay-detection.service.ts` with evaluateDelay function from spec section 7.1
+- [x] Implement default delivery windows lookup (spec section 7.2)
+- [x] Create `app/lib/business-days.ts` for business day calculations using date-fns
+- [x] Service level normalization (fuzzy matching for "UPS GROUND", "Ground", "UPS Ground" -> ups_ground)
+- [x] Support merchant overrides from settings.deliveryWindows
+- [x] Grace period from settings.delayThresholdHours (default: 8)
+- [x] Write comprehensive unit tests for delay scenarios: carrier exception, past due, grace period, rescheduled
 
 **Verification:**
 - All delay detection scenarios correctly handled
 - Business day calculations accurate
 - Tests pass
 
-### [ ] Step: Carrier Poll Worker
+### [x] Step: Carrier Poll Worker
+<!-- chat-id: 3631cebe-fa1a-45a7-bf7a-6a8ef5eaaf96 -->
 
 Implement background worker for carrier polling.
 
 **Tasks:**
-- [ ] Create `app/jobs/carrier-poll.job.ts` job definition
-- [ ] Create `worker/carrier-poll.worker.ts` implementing logic from spec section 8.3:
+- [x] Create `app/jobs/carrier-poll.job.ts` job definition
+- [x] Create `worker/carrier-poll.worker.ts` implementing logic from spec section 8.3:
   - Load shipment and merchant from DB
   - Skip if carrier === UNKNOWN
   - Call carrier adapter
@@ -223,8 +229,8 @@ Implement background worker for carrier polling.
   - Handle delivery (isDelivered, deliveredAt)
   - Calculate nextPollAt using smart scheduling (spec section 8.4)
   - Error handling with pollErrorCount
-- [ ] Set concurrency to 10 as per spec
-- [ ] Write integration tests with mocked carrier adapters
+- [x] Set concurrency to 10 as per spec
+- [x] Write integration tests with mocked carrier adapters
 
 **Verification:**
 - Shipment status updated after poll
@@ -232,23 +238,24 @@ Implement background worker for carrier polling.
 - Delay correctly flagged
 - nextPollAt calculated correctly
 
-### [ ] Step: Poll Scheduler and Data Cleanup Workers
+### [x] Step: Poll Scheduler and Data Cleanup Workers
+<!-- chat-id: 5ebc2776-ea6f-4dfa-b6c2-9382ebf2db93 -->
 
 Implement scheduler for triggering polls and data cleanup.
 
 **Tasks:**
-- [ ] Create `app/jobs/poll-scheduler.job.ts` job definition
-- [ ] Create `worker/poll-scheduler.worker.ts`:
+- [x] Create `app/jobs/poll-scheduler.job.ts` job definition
+- [x] Create `worker/poll-scheduler.worker.ts`:
   - Query shipments where nextPollAt <= now(), not archived/delivered, merchant active
   - Enqueue carrier-poll jobs with deduplication (jobId = poll-{shipment.id})
   - Priority based on urgency (past-due = higher)
   - Run as BullMQ repeatable job every 15 minutes
-- [ ] Create `app/jobs/data-cleanup.job.ts` job definition
-- [ ] Create `worker/data-cleanup.worker.ts`:
+- [x] Create `app/jobs/data-cleanup.job.ts` job definition
+- [x] Create `worker/data-cleanup.worker.ts`:
   - Archive: isArchived=true for delivered shipments past autoArchiveDays
   - Purge: Delete data for merchants uninstalled > 30 days
   - Run as daily repeatable job
-- [ ] Write unit tests
+- [x] Write unit tests
 
 **Verification:**
 - Scheduler correctly identifies shipments due for polling
@@ -259,75 +266,79 @@ Implement scheduler for triggering polls and data cleanup.
 
 ## Phase 4: Dashboard & Core UI
 
-### [ ] Step: Dashboard Layout and Summary Cards
+### [x] Step: Dashboard Layout and Summary Cards
+<!-- chat-id: 8b231911-ef07-42fc-a106-6752851206f2 -->
 
 Implement main dashboard layout with summary metrics.
 
 **Tasks:**
-- [ ] Create `app/routes/app._index.tsx` with loader that checks onboardingDone, redirects if needed
-- [ ] Create `app/components/dashboard/SummaryCards.tsx` displaying:
+- [x] Create `app/routes/app._index.tsx` with loader that checks onboardingDone, redirects if needed
+- [x] Create `app/components/dashboard/SummaryCards.tsx` displaying:
   - Total active shipments
   - Delayed shipments (with badge)
   - Delivered today
   - Average delivery time by carrier
-- [ ] Create `app/components/dashboard/TabNav.tsx` with tabs: All, Delayed, Pending Pickup, Resolved, Delivered
-- [ ] Style with Polaris components (Page, Layout, Card, Badge)
-- [ ] Implement loader query for summary statistics
+- [x] Create `app/components/dashboard/TabNav.tsx` with tabs: All, Delayed, Pending Pickup, Resolved, Delivered
+- [x] Style with Polaris components (Page, Layout, Card, Badge)
+- [x] Implement loader query for summary statistics
 
 **Verification:**
 - Dashboard loads with summary cards
 - Tab navigation works
 - `npx tsc --noEmit` passes
 
-### [ ] Step: Shipment API Endpoint
+### [x] Step: Shipment API Endpoint
+<!-- chat-id: 972ff22a-dcbc-43a6-ad92-62c06b083f49 -->
 
 Implement JSON API for querying shipments with filtering and pagination.
 
 **Tasks:**
-- [ ] Create `app/routes/api.shipments.tsx` GET endpoint with query params from spec section 5.2
-- [ ] Implement pagination (page, pageSize with max 100)
-- [ ] Implement filtering: tab, carrier, serviceLevel, delayStatus, orderValueMin/Max, shipDateFrom/To, locationId
-- [ ] Implement sorting: sortBy, sortDir
-- [ ] Return response shape: { shipments, pagination, summary }
-- [ ] Add Zod schema for query parameter validation
-- [ ] Write unit tests for query building
+- [x] Create `app/routes/api.shipments.tsx` GET endpoint with query params from spec section 5.2
+- [x] Implement pagination (page, pageSize with max 100)
+- [x] Implement filtering: tab, carrier, serviceLevel, delayStatus, orderValueMin/Max, shipDateFrom/To, locationId
+- [x] Implement sorting: sortBy, sortDir
+- [x] Return response shape: { shipments, pagination, summary }
+- [x] Add Zod schema for query parameter validation
+- [x] Write unit tests for query building
 
 **Verification:**
 - API returns correct filtered/sorted/paginated results
 - Query parameters validated
 - Tests pass
 
-### [ ] Step: Shipment Table and Detail Panel
+### [x] Step: Shipment Table and Detail Panel
+<!-- chat-id: 23910f7c-abb2-4642-9b2a-18ef3833f501 -->
 
 Implement shipment data table with expandable details.
 
 **Tasks:**
-- [ ] Create `app/components/dashboard/ShipmentTable.tsx`:
+- [x] Create `app/components/dashboard/ShipmentTable.tsx`:
   - Polaris IndexTable with selection
   - Default columns from spec (Order#, Tracking#, Carrier, Service Level, Customer Name, Ship Date, Expected Delivery, Days Delayed, Order Value)
   - Links: Order# -> Shopify order, Tracking# -> carrier tracking page
   - Row click expands detail panel
-- [ ] Create `app/components/dashboard/ShipmentDetailPanel.tsx`:
+- [x] Create `app/components/dashboard/ShipmentDetailPanel.tsx`:
   - Full customer info
   - Tracking timeline from TrackingEvent records
   - Carrier status details
   - Notification history
   - Resolution history
   - Quick action buttons
-- [ ] Integrate with api.shipments endpoint using fetcher for AJAX updates
-- [ ] Implement loading states
+- [x] Integrate with api.shipments endpoint using fetcher for AJAX updates
+- [x] Implement loading states
 
 **Verification:**
 - Table displays shipment data
 - Detail panel shows complete information
 - Row selection works
 
-### [ ] Step: Filtering and Column Customization
+### [x] Step: Filtering and Column Customization
+<!-- chat-id: b3df8bdd-8df9-4615-8292-fc1bbd69f6d8 -->
 
 Implement filter controls and column customization.
 
 **Tasks:**
-- [ ] Create `app/components/dashboard/FilterBar.tsx`:
+- [x] Create `app/components/dashboard/FilterBar.tsx`:
   - Carrier filter (multi-select)
   - Service level filter
   - Delay status filter
@@ -335,12 +346,12 @@ Implement filter controls and column customization.
   - Ship date range picker
   - Location filter (for multi-location merchants)
   - Clear filters button
-- [ ] Implement column customization:
+- [x] Implement column customization:
   - Column visibility toggles (Polaris Popover with checkboxes)
   - Column reorder (drag-drop or picker)
   - Save preferences to merchant.settings via API
-- [ ] Create `app/routes/api.settings.tsx` POST endpoint for saving preferences
-- [ ] Filters update URL params and trigger fetcher
+- [x] Create `app/routes/api.settings.tsx` POST endpoint for saving preferences
+- [x] Filters update URL params and trigger fetcher
 
 **Verification:**
 - All filters work correctly
@@ -351,27 +362,28 @@ Implement filter controls and column customization.
 
 ## Phase 5: Notifications & Resolution
 
-### [ ] Step: Send Notification Flow
+### [x] Step: Send Notification Flow
+<!-- chat-id: 0bec18c8-503b-4f7c-942a-a9853fa8c3db -->
 
 Implement individual notification sending.
 
 **Tasks:**
-- [ ] Create `app/components/notifications/SendNotificationModal.tsx`:
+- [x] Create `app/components/notifications/SendNotificationModal.tsx`:
   - Pre-filled recipient email (editable)
   - Pre-filled subject from template (editable)
   - Pre-filled body from template with variables replaced (editable)
   - Email preview
   - Send button
-- [ ] Create `app/services/notification.service.ts`:
+- [x] Create `app/services/notification.service.ts`:
   - renderTemplate function with variable replacement (spec section 9.1)
   - sendNotificationEmail function using Resend (spec section 9.2)
   - createNotificationLog function
-- [ ] Install `resend` package
-- [ ] Create `app/routes/api.shipments.$id.notify.tsx` POST endpoint
-- [ ] Create `app/jobs/send-notification.job.ts` job definition
-- [ ] Create `worker/send-notification.worker.ts`
-- [ ] Update ShipmentTable/DetailPanel with Send Notification action
-- [ ] Write unit tests for template rendering
+- [x] Install `resend` package
+- [x] Create `app/routes/api.shipments.$id.notify.tsx` POST endpoint
+- [x] Create `app/jobs/send-notification.job.ts` job definition
+- [x] Create `worker/send-notification.worker.ts`
+- [x] Update ShipmentTable/DetailPanel with Send Notification action
+- [x] Write unit tests for template rendering
 
 **Verification:**
 - Notification modal opens with pre-filled data
@@ -379,47 +391,49 @@ Implement individual notification sending.
 - NotificationLog record created
 - Shipment marked as notificationSent=true
 
-### [ ] Step: Resolution Workflow
+### [x] Step: Resolution Workflow
+<!-- chat-id: 6419183b-16ed-441e-afd0-eba8dc402277 -->
 
 Implement shipment resolution flow.
 
 **Tasks:**
-- [ ] Create `app/components/resolution/ResolveModal.tsx`:
+- [x] Create `app/components/resolution/ResolveModal.tsx`:
   - Resolution reason dropdown (enum values from spec FR-RESOLVE-1)
   - Optional notes field (500 char max)
   - Resolve button
-- [ ] Create `app/services/resolution.service.ts`:
+- [x] Create `app/services/resolution.service.ts`:
   - resolveShipment function
   - createResolutionLog function (includes timeDelayedBeforeResolution calculation)
-- [ ] Create `app/routes/api.shipments.$id.resolve.tsx` POST endpoint
-- [ ] Update ShipmentTable/DetailPanel with Resolve action
-- [ ] Resolution history in detail panel
-- [ ] Write unit tests
+- [x] Create `app/routes/api.shipments.$id.resolve.tsx` POST endpoint
+- [x] Update ShipmentTable/DetailPanel with Resolve action
+- [x] Resolution history in detail panel
+- [x] Write unit tests
 
 **Verification:**
 - Resolution modal captures reason and notes
 - Shipment moves to Resolved tab
 - ResolutionLog record created with audit trail
 
-### [ ] Step: Bulk Actions and CSV Export
+### [x] Step: Bulk Actions and CSV Export
+<!-- chat-id: 54262570-7827-4095-a49a-6b5ed3f473af -->
 
 Implement bulk operations and export functionality.
 
 **Tasks:**
-- [ ] Create `app/components/dashboard/BulkActionBar.tsx`:
+- [x] Create `app/components/dashboard/BulkActionBar.tsx`:
   - Shows when rows selected
   - "Send Notification to All" button
   - "Mark All as Resolved" button
   - "Export Selected" button
-- [ ] Create `app/routes/api.shipments.bulk-notify.tsx` POST endpoint (enqueues jobs, returns immediately)
-- [ ] Create `app/routes/api.shipments.bulk-resolve.tsx` POST endpoint
-- [ ] Create `app/lib/csv.ts` with generateCSV function
-- [ ] Create `app/routes/api.shipments.export.tsx` GET endpoint:
+- [x] Create `app/routes/api.shipments.bulk-notify.tsx` POST endpoint (enqueues jobs, returns immediately)
+- [x] Create `app/routes/api.shipments.bulk-resolve.tsx` POST endpoint
+- [x] Create `app/lib/csv.ts` with generateCSV function
+- [x] Create `app/routes/api.shipments.export.tsx` GET endpoint:
   - Same query params as api.shipments
   - Returns Content-Type: text/csv with Content-Disposition: attachment
   - Include all visible columns plus customer email
-- [ ] Wire up bulk actions in ShipmentTable
-- [ ] Write unit tests for CSV generation
+- [x] Wire up bulk actions in ShipmentTable
+- [x] Write unit tests for CSV generation
 
 **Verification:**
 - Bulk notify enqueues multiple jobs
@@ -427,20 +441,21 @@ Implement bulk operations and export functionality.
 - CSV downloads with correct data
 - Tests pass
 
-### [ ] Step: Notification Template Settings
+### [x] Step: Notification Template Settings
+<!-- chat-id: b2a3c9ec-237e-4d23-8e7e-7170f908b9a4 -->
 
 Implement notification template customization.
 
 **Tasks:**
-- [ ] Create `app/components/settings/NotificationSettings.tsx`:
+- [x] Create `app/components/settings/NotificationSettings.tsx`:
   - Subject field (editable)
   - Body textarea (editable, must keep core variables)
   - Template variable reference
   - Preview with sample data
   - Save button
-- [ ] Add template validation (must contain {tracking_number}, {order_number})
-- [ ] Integrate into Settings page
-- [ ] Load/save from merchant.settings.notificationTemplate
+- [x] Add template validation (must contain {tracking_number}, {order_number})
+- [x] Integrate into Settings page
+- [x] Load/save from merchant.settings.notificationTemplate
 
 **Verification:**
 - Template customization saves correctly
@@ -451,25 +466,26 @@ Implement notification template customization.
 
 ## Phase 6: Billing, Onboarding & Settings
 
-### [ ] Step: Shopify Billing Integration
+### [x] Step: Shopify Billing Integration
+<!-- chat-id: 36c1db1e-74ca-410c-bb98-3605f06a5463 -->
 
 Implement billing flow with Shopify Billing API.
 
 **Tasks:**
-- [ ] Update `app/shopify.server.ts` with billing configuration from spec section 10.1
-- [ ] Create `app/services/billing.service.ts`:
+- [x] Update `app/shopify.server.ts` with billing configuration from spec section 10.1
+- [x] Create `app/services/billing.service.ts`:
   - Plan limit constants (spec section 10.2)
   - getCurrentUsage function (count shipments with hasCarrierScan=true in current billing cycle)
   - checkPlanLimit function
   - Feature gating checks (spec section 10.3)
-- [ ] Create `app/routes/api.billing.tsx` with actions:
+- [x] Create `app/routes/api.billing.tsx` with actions:
   - selectPlan: creates Shopify subscription, returns confirmationUrl
   - confirmPlan: handles callback, activates plan
-- [ ] Implement plan limit enforcement:
+- [x] Implement plan limit enforcement:
   - In webhook handler: check limit before creating shipment
   - In carrier-poll worker: check on first scan
   - Show upgrade prompt when at limit
-- [ ] Write unit tests for billing logic
+- [x] Write unit tests for billing logic
 
 **Verification:**
 - Plan selection redirects to Shopify approval
@@ -477,31 +493,32 @@ Implement billing flow with Shopify Billing API.
 - Shipment counting works correctly
 - Feature gating enforced
 
-### [ ] Step: Onboarding Wizard
+### [x] Step: Onboarding Wizard
+<!-- chat-id: 3490aee5-f0b7-402d-aec6-f8ec8d93bcd3 -->
 
 Implement four-step onboarding flow.
 
 **Tasks:**
-- [ ] Create `app/routes/app.onboarding.tsx` with multi-step wizard
-- [ ] Create `app/components/onboarding/WelcomeStep.tsx`:
+- [x] Create `app/routes/app.onboarding.tsx` with multi-step wizard
+- [x] Create `app/components/onboarding/WelcomeStep.tsx`:
   - Value proposition
   - "Let's get you set up" CTA
-- [ ] Create `app/components/onboarding/PreferencesStep.tsx`:
+- [x] Create `app/components/onboarding/PreferencesStep.tsx`:
   - Polling frequency preference
   - Delay threshold setting (default: 8 hours)
   - Timezone selection
   - Template preview
-- [ ] Create `app/components/onboarding/SyncStep.tsx`:
+- [x] Create `app/components/onboarding/SyncStep.tsx`:
   - Progress indicator
   - Trigger fulfillment-sync job
   - Poll for completion
   - Show "Synced X shipments! Y are currently delayed."
-- [ ] Create `app/components/onboarding/TestModeStep.tsx`:
+- [x] Create `app/components/onboarding/TestModeStep.tsx`:
   - Option to add test shipment
   - Pre-loaded dummy data option
   - Skip to dashboard button
-- [ ] Set merchant.onboardingDone = true on completion
-- [ ] Redirect from dashboard if onboardingDone = false
+- [x] Set merchant.onboardingDone = true on completion
+- [x] Redirect from dashboard if onboardingDone = false
 
 **Verification:**
 - Wizard flows through all steps
@@ -509,64 +526,66 @@ Implement four-step onboarding flow.
 - Preferences saved
 - Completes and reaches dashboard
 
-### [ ] Step: Settings Page
+### [x] Step: Settings Page
+<!-- chat-id: f41aeb64-e2ec-40ad-8617-dd2bb0b77f8e -->
 
 Implement full settings page with all sections.
 
 **Tasks:**
-- [ ] Create `app/routes/app.settings.tsx` with sectioned layout
-- [ ] Create `app/components/settings/PollingSettings.tsx`:
+- [x] Create `app/routes/app.settings.tsx` with sectioned layout
+- [x] Create `app/components/settings/PollingSettings.tsx`:
   - Polling frequency preferences
   - Delay threshold (hours)
   - Default delivery windows table (editable)
-- [ ] Create `app/components/settings/DashboardPreferences.tsx`:
+- [x] Create `app/components/settings/DashboardPreferences.tsx`:
   - Column visibility toggles
   - Default sort order
   - Location filtering defaults
-- [ ] Reuse NotificationSettings from Phase 5
-- [ ] Create `app/components/settings/DisplaySettings.tsx`:
+- [x] Reuse NotificationSettings from Phase 5
+- [x] Create `app/components/settings/DisplaySettings.tsx`:
   - Timezone selection
   - Auto-archive days setting
-- [ ] Create `app/components/settings/AccountBilling.tsx`:
+- [x] Create `app/components/settings/AccountBilling.tsx`:
   - Current plan display
   - Usage meter (shipments this cycle vs limit)
   - Upgrade/downgrade buttons
   - Billing history (from Shopify)
-- [ ] All settings save to merchant.settings JSON
-- [ ] Write unit tests for settings validation
+- [x] All settings save to merchant.settings JSON
+- [x] Write unit tests for settings validation
 
 **Verification:**
 - All settings sections render
 - Changes save and persist
 - Billing section shows correct info
 
-### [ ] Step: Edge Cases and App Lifecycle
+### [x] Step: Edge Cases and App Lifecycle
+<!-- chat-id: 800230fd-8dd3-4bf7-a92e-de47489c7e83 -->
 
 Handle edge cases and app lifecycle events.
 
 **Tasks:**
-- [ ] Handle store paused/frozen:
+- [x] Handle store paused/frozen:
   - Check shop status in app.tsx loader
   - Show paused message if store frozen
   - Pause polling for frozen stores
-- [ ] Handle merchant downgrades:
+- [x] Handle merchant downgrades:
   - Stop tracking new shipments immediately
   - Continue in-progress shipments
   - Show downgrade messaging
-- [ ] Implement test mode:
+- [x] Implement test mode:
   - Add test shipment with real or fake tracking number
   - Pre-loaded dummy data
   - "Test Data" badge display
   - "Clear test data" function
-- [ ] Handle duplicate tracking numbers:
+- [x] Handle duplicate tracking numbers:
   - Detection in webhook handler
   - Warning display in dashboard
   - Merchant decision flow
-- [ ] Complete `webhooks.app.uninstalled.tsx`:
+- [x] Complete `webhooks.app.uninstalled.tsx`:
   - Mark merchant as uninstalled
   - Stop all polling
   - Schedule data purge job (30 days)
-- [ ] Write tests for edge cases
+- [x] Write tests for edge cases
 
 **Verification:**
 - Paused stores handled gracefully
@@ -579,43 +598,45 @@ Handle edge cases and app lifecycle events.
 
 ## Phase 7: Testing and Polish
 
-### [ ] Step: Comprehensive Testing
+### [x] Step: Comprehensive Testing
+<!-- chat-id: c33c4769-0bc6-4cc2-9008-3b3dfdf04471 -->
 
 Add comprehensive test coverage.
 
 **Tasks:**
-- [ ] Unit tests for all services (aim for >80% coverage on business logic)
-- [ ] Integration tests for:
+- [x] Unit tests for all services (aim for >80% coverage on business logic)
+- [x] Integration tests for:
   - Carrier adapters with sandbox/mock APIs
   - Webhook handlers with mocked authenticate.webhook
   - API routes with mocked Prisma
-- [ ] E2E test scenarios:
+- [x] E2E test scenarios:
   - Install -> onboarding -> dashboard
   - Create fulfillment -> webhook -> shipment appears
   - Carrier poll -> delay detected -> notification sent -> resolved
-- [ ] Set up Vitest configuration
-- [ ] Add test scripts to package.json
+- [x] Set up Vitest configuration
+- [x] Add test scripts to package.json
 
 **Verification:**
-- `npx vitest run` passes
-- Coverage report shows adequate coverage
-- All critical paths tested
+- [x] `npx vitest run` passes (588 tests)
+- [x] Coverage report shows adequate coverage
+- [x] All critical paths tested
 
-### [ ] Step: Code Quality and Documentation
+### [x] Step: Code Quality and Documentation
+<!-- chat-id: 08f6cfcb-da3a-45bc-8c32-0d423612a83c -->
 
 Final code quality pass and documentation.
 
 **Tasks:**
-- [ ] Run ESLint, fix all errors: `npx eslint . --fix`
-- [ ] Run type check: `npx tsc --noEmit`
-- [ ] Run Prisma validate: `npx prisma validate`
-- [ ] Review all TODO comments and resolve
-- [ ] Add inline documentation for complex functions
-- [ ] Create DEPLOYMENT.md with Railway setup instructions
-- [ ] Verify all environment variables documented in .env.example
+- [x] Run ESLint, fix all errors: `npx eslint . --fix`
+- [x] Run type check: `npx tsc --noEmit`
+- [x] Run Prisma validate: `npx prisma validate`
+- [x] Review all TODO comments and resolve
+- [x] Add inline documentation for complex functions
+- [x] Create DEPLOYMENT.md with Railway setup instructions
+- [x] Verify all environment variables documented in .env.example
 
 **Verification:**
-- No lint errors
-- No type errors
-- All checks pass
-- Deployment guide complete
+- [x] No lint errors
+- [x] No type errors
+- [x] All checks pass
+- [x] Deployment guide complete

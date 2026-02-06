@@ -1,18 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { DEFAULT_MERCHANT_SETTINGS } from "~/lib/validation";
 
-// Mock Prisma - must use inline values since vi.mock is hoisted
-vi.mock("~/db.server", () => ({
-  prisma: {
-    merchant: {
-      upsert: vi.fn(),
-      findUnique: vi.fn(),
-      findUniqueOrThrow: vi.fn(),
-      update: vi.fn(),
-    },
-  },
-}));
-
 // Import after mock setup
 import { prisma } from "~/db.server";
 import {
@@ -25,12 +13,30 @@ import {
   completeOnboarding,
   updateMerchantBilling,
   markMerchantUninstalled,
+  updateShopStatus,
+  updateMerchantPlanTier,
+  isDowngrade,
+  getActiveMerchantIds,
 } from "../merchant.service";
+
+// Mock Prisma - must use inline values since vi.mock is hoisted
+vi.mock("~/db.server", () => ({
+  prisma: {
+    merchant: {
+      upsert: vi.fn(),
+      findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+    },
+  },
+}));
 
 // Get typed mocks
 const mockUpsert = prisma.merchant.upsert as ReturnType<typeof vi.fn>;
 const mockFindUnique = prisma.merchant.findUnique as ReturnType<typeof vi.fn>;
 const mockFindUniqueOrThrow = prisma.merchant.findUniqueOrThrow as ReturnType<typeof vi.fn>;
+const mockFindMany = prisma.merchant.findMany as ReturnType<typeof vi.fn>;
 const mockUpdate = prisma.merchant.update as ReturnType<typeof vi.fn>;
 
 describe("merchant.service", () => {
@@ -451,7 +457,10 @@ describe("merchant.service", () => {
 
       expect(mockUpdate).toHaveBeenCalledWith({
         where: { shopifyShopId: "test-shop.myshopify.com" },
-        data: { billingStatus: "CANCELLED" },
+        data: {
+          billingStatus: "CANCELLED",
+          uninstalledAt: expect.any(Date),
+        },
       });
       expect(result?.billingStatus).toBe("CANCELLED");
     });
@@ -464,6 +473,131 @@ describe("merchant.service", () => {
       );
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe("updateShopStatus", () => {
+    it("should update shopFrozen and shopPlanName", async () => {
+      mockUpdate.mockResolvedValue({});
+
+      await updateShopStatus("merchant-123", {
+        shopFrozen: true,
+        shopPlanName: "Basic",
+      });
+
+      expect(mockUpdate).toHaveBeenCalledWith({
+        where: { id: "merchant-123" },
+        data: {
+          shopFrozen: true,
+          shopPlanName: "Basic",
+        },
+      });
+    });
+
+    it("should set shopFrozen to false for active shops", async () => {
+      mockUpdate.mockResolvedValue({});
+
+      await updateShopStatus("merchant-123", {
+        shopFrozen: false,
+        shopPlanName: "Shopify Plus",
+      });
+
+      expect(mockUpdate).toHaveBeenCalledWith({
+        where: { id: "merchant-123" },
+        data: {
+          shopFrozen: false,
+          shopPlanName: "Shopify Plus",
+        },
+      });
+    });
+  });
+
+  describe("updateMerchantPlanTier", () => {
+    it("should update plan tier and track previous tier", async () => {
+      const mockMerchant = {
+        id: "merchant-123",
+        shopifyShopId: "test-shop.myshopify.com",
+        shopDomain: "test-shop.myshopify.com",
+        email: "test@example.com",
+        timezone: "America/New_York",
+        settings: {},
+        planTier: "PROFESSIONAL" as const,
+        previousPlanTier: "STARTER" as const,
+        billingStatus: "ACTIVE" as const,
+        randomPollOffset: 100,
+        installedAt: new Date(),
+        onboardingDone: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockFindUniqueOrThrow.mockResolvedValue({ planTier: "STARTER" });
+      mockUpdate.mockResolvedValue(mockMerchant);
+
+      const result = await updateMerchantPlanTier("merchant-123", "PROFESSIONAL");
+
+      expect(mockUpdate).toHaveBeenCalledWith({
+        where: { id: "merchant-123" },
+        data: {
+          previousPlanTier: "STARTER",
+          planTier: "PROFESSIONAL",
+          billingStatus: "ACTIVE",
+        },
+      });
+      expect(result.planTier).toBe("PROFESSIONAL");
+    });
+  });
+
+  describe("isDowngrade", () => {
+    it("should return true when downgrading from higher tier", () => {
+      expect(isDowngrade("PROFESSIONAL", "STARTER")).toBe(true);
+      expect(isDowngrade("ENTERPRISE", "BUSINESS")).toBe(true);
+      expect(isDowngrade("BUSINESS", "STARTER")).toBe(true);
+    });
+
+    it("should return false when upgrading to higher tier", () => {
+      expect(isDowngrade("STARTER", "PROFESSIONAL")).toBe(false);
+      expect(isDowngrade("BUSINESS", "ENTERPRISE")).toBe(false);
+      expect(isDowngrade("STARTER", "BUSINESS")).toBe(false);
+    });
+
+    it("should return false when staying on same tier", () => {
+      expect(isDowngrade("STARTER", "STARTER")).toBe(false);
+      expect(isDowngrade("PROFESSIONAL", "PROFESSIONAL")).toBe(false);
+    });
+
+    it("should return false when previous tier is null", () => {
+      expect(isDowngrade(null, "STARTER")).toBe(false);
+      expect(isDowngrade(null, "ENTERPRISE")).toBe(false);
+    });
+  });
+
+  describe("getActiveMerchantIds", () => {
+    it("should return merchant IDs for non-frozen, non-cancelled merchants", async () => {
+      mockFindMany.mockResolvedValue([
+        { id: "merchant-1" },
+        { id: "merchant-2" },
+        { id: "merchant-3" },
+      ]);
+
+      const result = await getActiveMerchantIds();
+
+      expect(mockFindMany).toHaveBeenCalledWith({
+        where: {
+          billingStatus: { not: "CANCELLED" },
+          shopFrozen: false,
+        },
+        select: { id: true },
+      });
+      expect(result).toEqual(["merchant-1", "merchant-2", "merchant-3"]);
+    });
+
+    it("should return empty array when no active merchants", async () => {
+      mockFindMany.mockResolvedValue([]);
+
+      const result = await getActiveMerchantIds();
+
+      expect(result).toEqual([]);
     });
   });
 });

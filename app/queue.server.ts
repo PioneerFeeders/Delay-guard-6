@@ -21,7 +21,7 @@ import {
 // Singleton pattern for Redis connection (web process)
 let redisConnection: Redis | null = null;
 
-function getRedisConnection(): Redis {
+export function getRedisConnection(): Redis {
   if (!redisConnection) {
     const redisUrl = process.env.REDIS_URL;
     if (!redisUrl) {

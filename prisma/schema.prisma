@@ -32,15 +32,22 @@ model Merchant {
   timezone         String        @default("America/New_York")
   settings         Json          @default("{}")
   planTier         PlanTier      @default(STARTER)
+  previousPlanTier PlanTier?     // Tracks previous plan for downgrade handling
   billingStatus    BillingStatus @default(PENDING)
   randomPollOffset Int           @default(0) // 0-239 minutes
   installedAt      DateTime      @default(now())
+  uninstalledAt    DateTime?     // Set when merchant uninstalls app
   onboardingDone   Boolean       @default(false)
+  shopPlanName     String?       // Shopify store plan name (basic, shopify, advanced, plus)
+  shopFrozen       Boolean       @default(false) // True if shop is paused/frozen
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
   shipments        Shipment[]
   notificationLogs NotificationLog[]
+
+  @@index([uninstalledAt]) // For cleanup queries
+  @@index([shopFrozen]) // For polling exclusion
 }
 
 enum PlanTier {
@@ -101,6 +108,7 @@ model Shipment {
   nextPollAt              DateTime?
   pollErrorCount          Int            @default(0)
   hasCarrierScan          Boolean        @default(false)
+  isTestData              Boolean        @default(false) // True for test/dummy shipments
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
 

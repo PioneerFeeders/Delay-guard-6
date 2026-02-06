@@ -3,7 +3,7 @@ import { json } from "@remix-run/node";
 import { prisma } from "../db.server";
 import { isRedisHealthy } from "../queue.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export const loader = async (_request: LoaderFunctionArgs) => {
   const health: {
     status: "ok" | "error";
     timestamp: string;

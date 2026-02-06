@@ -3,39 +3,77 @@
  *
  * This worker syncs fulfillments from Shopify for a merchant.
  * It's used for the initial sync during onboarding and for manual re-syncs.
- *
- * Implemented in Phase 2: Shopify Integration (Data Ingestion)
  */
 
 import type { Job } from "bullmq";
-
-export interface FulfillmentSyncJobData {
-  merchantId: string;
-  fullSync?: boolean;
-}
+import type { FulfillmentSyncJobData } from "../app/jobs/types";
+import type { FulfillmentSyncJobResult } from "../app/jobs/fulfillment-sync.job";
+import { syncFulfillments } from "../app/services/sync.service";
 
 /**
  * Process a fulfillment sync job
  *
- * TODO: Implement in Phase 2
- * - Load merchant and session from DB
- * - Query Shopify for fulfillments from last 5 days (or full history if fullSync)
- * - Handle GraphQL pagination
- * - Create Shipment records for each fulfillment
- * - Skip already-synced fulfillments (by shopifyFulfillmentId)
- * - Track progress for UI feedback
+ * This worker:
+ * - Loads merchant and session from DB
+ * - Queries Shopify for fulfillments from last 5 days (or full history if fullSync)
+ * - Handles GraphQL pagination
+ * - Creates Shipment records for each fulfillment
+ * - Skips already-synced fulfillments (by shopifyFulfillmentId)
+ * - Tracks progress for UI feedback
  */
 export async function processFulfillmentSync(
   job: Job<FulfillmentSyncJobData>
-): Promise<void> {
+): Promise<FulfillmentSyncJobResult> {
   const { merchantId, fullSync } = job.data;
+  const startTime = Date.now();
+
   console.log(
-    `[fulfillment-sync] Processing job ${job.id} for merchant ${merchantId} (fullSync: ${fullSync})`
+    `[fulfillment-sync] Starting job ${job.id} for merchant ${merchantId} (fullSync: ${fullSync})`
   );
 
-  // Placeholder implementation
-  // Will be implemented in Phase 2: Shopify Integration (Data Ingestion)
-  console.log(
-    `[fulfillment-sync] Placeholder: Would sync fulfillments for merchant ${merchantId}`
-  );
+  try {
+    // Run the sync with progress tracking
+    const result = await syncFulfillments(merchantId, fullSync ?? false, async (progress) => {
+      // Update job progress for monitoring
+      await job.updateProgress({
+        processed: progress.processed,
+        total: progress.total,
+        percentage: progress.percentage,
+      });
+
+      // Log progress at intervals
+      if (progress.processed % 10 === 0 || progress.processed === progress.total) {
+        console.log(
+          `[fulfillment-sync] Progress: ${progress.processed}/${progress.total} (${progress.percentage}%)`
+        );
+      }
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    console.log(
+      `[fulfillment-sync] Completed job ${job.id} in ${durationMs}ms: ` +
+        `${result.created} created, ${result.skipped} skipped, ${result.errors} errors`
+    );
+
+    // Return result to be stored in job.returnvalue
+    return {
+      total: result.total,
+      created: result.created,
+      skipped: result.skipped,
+      errors: result.errors,
+      duplicates: result.duplicates,
+      pollJobsEnqueued: result.pollJobsEnqueued,
+      durationMs,
+    };
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    console.error(
+      `[fulfillment-sync] Failed job ${job.id} after ${durationMs}ms:`,
+      error
+    );
+
+    // Re-throw to trigger BullMQ retry logic
+    throw error;
+  }
 }

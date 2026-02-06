@@ -199,7 +199,7 @@ export async function updateMerchantBilling(
 
 /**
  * Mark a merchant as uninstalled (for cleanup scheduling).
- * Sets billing status to CANCELLED.
+ * Sets billing status to CANCELLED and records uninstalledAt timestamp.
  */
 export async function markMerchantUninstalled(
   shopifyShopId: string
@@ -207,10 +207,102 @@ export async function markMerchantUninstalled(
   try {
     return await prisma.merchant.update({
       where: { shopifyShopId },
-      data: { billingStatus: "CANCELLED" },
+      data: {
+        billingStatus: "CANCELLED",
+        uninstalledAt: new Date(),
+      },
     });
   } catch {
     // Merchant may not exist if they never completed install
     return null;
   }
+}
+
+/**
+ * Delete a merchant and all associated data.
+ * Used during data purge after retention period.
+ */
+export async function deleteMerchant(merchantId: string): Promise<void> {
+  // Prisma cascade delete will remove all related records
+  await prisma.merchant.delete({
+    where: { id: merchantId },
+  });
+}
+
+/**
+ * Update shop status (frozen/paused state and plan name).
+ * Called on each app load to keep status current.
+ */
+export interface ShopStatusUpdate {
+  shopFrozen: boolean;
+  shopPlanName: string | null;
+}
+
+export async function updateShopStatus(
+  merchantId: string,
+  status: ShopStatusUpdate
+): Promise<void> {
+  await prisma.merchant.update({
+    where: { id: merchantId },
+    data: {
+      shopFrozen: status.shopFrozen,
+      shopPlanName: status.shopPlanName,
+    },
+  });
+}
+
+/**
+ * Update merchant plan tier when they change plans.
+ * Tracks previous plan tier for downgrade handling.
+ */
+export async function updateMerchantPlanTier(
+  merchantId: string,
+  newPlanTier: PlanTier
+): Promise<MerchantWithSettings> {
+  const current = await prisma.merchant.findUniqueOrThrow({
+    where: { id: merchantId },
+    select: { planTier: true },
+  });
+
+  const merchant = await prisma.merchant.update({
+    where: { id: merchantId },
+    data: {
+      previousPlanTier: current.planTier,
+      planTier: newPlanTier,
+      billingStatus: "ACTIVE",
+    },
+  });
+
+  return {
+    ...merchant,
+    settings: parseMerchantSettings(merchant.settings),
+  };
+}
+
+/**
+ * Check if merchant has downgraded from a higher plan tier.
+ */
+export function isDowngrade(previousTier: PlanTier | null, newTier: PlanTier): boolean {
+  if (!previousTier) return false;
+
+  const tierOrder: PlanTier[] = ["STARTER", "PROFESSIONAL", "BUSINESS", "ENTERPRISE"];
+  const prevIndex = tierOrder.indexOf(previousTier);
+  const newIndex = tierOrder.indexOf(newTier);
+
+  return newIndex < prevIndex;
+}
+
+/**
+ * Get merchants with active (non-frozen, non-cancelled) status for polling.
+ */
+export async function getActiveMerchantIds(): Promise<string[]> {
+  const merchants = await prisma.merchant.findMany({
+    where: {
+      billingStatus: { not: "CANCELLED" },
+      shopFrozen: false,
+    },
+    select: { id: true },
+  });
+
+  return merchants.map((m) => m.id);
 }
