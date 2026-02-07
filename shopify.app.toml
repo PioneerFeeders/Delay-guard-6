@@ -3,7 +3,7 @@
 client_id = "18ae87dfbe26e41f27d47ede1f692961"
 name = "DelayGuard"
 handle = "delayguard-dev"
-application_url = "https://your-app.railway.app"
+application_url = "https://delay-guard-6-production.up.railway.app"
 embedded = true
 
 [access_scopes]
@@ -12,9 +12,9 @@ scopes = "read_orders,read_fulfillments,write_fulfillments,read_customers"
 
 [auth]
 redirect_urls = [
-  "https://your-app.railway.app/auth/callback",
-  "https://your-app.railway.app/auth/shopify/callback",
-  "https://your-app.railway.app/api/auth/callback"
+  "https://delay-guard-6-production.up.railway.app/auth/callback",
+  "https://delay-guard-6-production.up.railway.app/auth/shopify/callback",
+  "https://delay-guard-6-production.up.railway.app/api/auth/callback"
 ]
 
 [webhooks]
