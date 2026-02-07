@@ -2,8 +2,7 @@
 # This configuration supports multi-service deployment (web + worker)
 
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "./Dockerfile"
+builder = "NIXPACKS"
 
 [deploy]
 # Number of instances to run (1 for hobby, more for scaling)
