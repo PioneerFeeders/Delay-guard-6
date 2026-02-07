@@ -13,9 +13,9 @@ numReplicas = 1
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
-# Health check disabled - app handles startup checks internally
-# healthcheckPath = "/healthz"
-# healthcheckTimeout = 10
+# Health check with longer timeout for db migrations
+healthcheckPath = "/healthz"
+healthcheckTimeout = 120
 
 # Graceful shutdown timeout (seconds)
 sleepApplication = false
