@@ -10,6 +10,8 @@
 import { Resend } from "resend";
 import { prisma } from "~/db.server";
 import type { MerchantSettings } from "~/lib/validation";
+import { MerchantSettingsSchema } from "~/lib/validation";
+import { renderHtmlEmail, extractBranding, hasBranding } from "~/lib/email-html";
 
 // Re-export client-safe utilities for backwards compatibility with server code
 export {
@@ -32,9 +34,6 @@ import { buildTemplateContext, renderTemplate } from "~/lib/notification-templat
 // Email Sending via Resend
 // ============================================================
 
-/**
- * Resend client singleton
- */
 let resendClient: Resend | null = null;
 
 function getResendClient(): Resend {
@@ -48,9 +47,6 @@ function getResendClient(): Resend {
   return resendClient;
 }
 
-/**
- * Result of sending a notification email
- */
 export interface SendEmailResult {
   success: boolean;
   messageId?: string;
@@ -60,50 +56,68 @@ export interface SendEmailResult {
 /**
  * Send a notification email via Resend
  *
+ * Automatically sends as HTML if the merchant has branding configured
+ * (logo or footer contact info). Falls back to plain text otherwise.
+ *
  * @param to - Recipient email address
  * @param subject - Email subject
- * @param body - Email body (plain text)
- * @param fromEmail - Optional custom from email (defaults to noreply@delayguard.app)
- * @returns SendEmailResult with success status and optional message ID or error
+ * @param body - Email body (plain text - will be wrapped in HTML if branding exists)
+ * @param fromEmail - Optional custom from email
+ * @param settings - Merchant settings (used for branding)
+ * @returns SendEmailResult
  */
 export async function sendNotificationEmail(
   to: string,
   subject: string,
   body: string,
-  fromEmail?: string | null
+  fromEmail?: string | null,
+  settings?: MerchantSettings | null
 ): Promise<SendEmailResult> {
   try {
     const resend = getResendClient();
 
-    // Use custom from email if provided, otherwise use default
-    const from = fromEmail || process.env.RESEND_FROM_EMAIL || "DelayGuard <noreply@delayguard.app>";
+    const from =
+      fromEmail ||
+      process.env.RESEND_FROM_EMAIL ||
+      "DelayGuard <noreply@delayguard.app>";
 
-    const { data, error } = await resend.emails.send({
+    // Build email payload — HTML if branding exists, plain text otherwise
+    const parsedSettings = settings
+      ? MerchantSettingsSchema.parse(settings)
+      : null;
+
+    const useBranding = parsedSettings && hasBranding(parsedSettings);
+
+    const emailPayload: {
+      from: string;
+      to: string;
+      subject: string;
+      text: string;
+      html?: string;
+    } = {
       from,
       to,
       subject,
-      text: body,
-    });
+      text: body, // Always include plain text as fallback
+    };
+
+    if (useBranding) {
+      const branding = extractBranding(parsedSettings);
+      emailPayload.html = renderHtmlEmail(body, branding);
+    }
+
+    const { data, error } = await resend.emails.send(emailPayload);
 
     if (error) {
       console.error("[notification] Failed to send email:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+      return { success: false, error: error.message };
     }
 
-    return {
-      success: true,
-      messageId: data?.id,
-    };
+    return { success: true, messageId: data?.id };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     console.error("[notification] Exception sending email:", errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -111,12 +125,6 @@ export async function sendNotificationEmail(
 // Notification Log
 // ============================================================
 
-/**
- * Create a notification log entry in the database
- *
- * @param params - Parameters for the notification log
- * @returns The created NotificationLog record
- */
 export async function createNotificationLog(params: {
   shipmentId: string;
   merchantId: string;
@@ -133,17 +141,12 @@ export async function createNotificationLog(params: {
       sentBy: params.sentBy,
       recipientEmail: params.recipientEmail,
       emailSubject: params.emailSubject,
-      emailBodyPreview: params.emailBody.substring(0, 500), // Store preview only
+      emailBodyPreview: params.emailBody.substring(0, 500),
       status: params.status,
     },
   });
 }
 
-/**
- * Mark a shipment as notified
- *
- * @param shipmentId - The shipment ID to mark as notified
- */
 export async function markShipmentNotified(shipmentId: string): Promise<void> {
   await prisma.shipment.update({
     where: { id: shipmentId },
@@ -161,11 +164,8 @@ export async function markShipmentNotified(shipmentId: string): Promise<void> {
 /**
  * Send a notification for a shipment and log the result
  *
- * This is the main function used by the notification worker.
- * It sends the email, creates a log entry, and updates the shipment status.
- *
- * @param params - Notification parameters
- * @returns Result of the notification send operation
+ * Now passes merchant settings through so the email renderer
+ * can apply logo header and contact footer branding.
  */
 export async function sendAndLogNotification(params: {
   shipmentId: string;
@@ -176,7 +176,6 @@ export async function sendAndLogNotification(params: {
 }): Promise<SendEmailResult> {
   const { shipmentId, recipientEmail, subject, body, sentBy } = params;
 
-  // Load shipment to get merchant info
   const shipment = await prisma.shipment.findUnique({
     where: { id: shipmentId },
     select: {
@@ -191,20 +190,21 @@ export async function sendAndLogNotification(params: {
   });
 
   if (!shipment) {
-    return {
-      success: false,
-      error: `Shipment not found: ${shipmentId}`,
-    };
+    return { success: false, error: `Shipment not found: ${shipmentId}` };
   }
 
-  // Get from email from merchant settings if available
   const settings = shipment.merchant.settings as MerchantSettings | null;
   const fromEmail = settings?.fromEmail || null;
 
-  // Send the email
-  const result = await sendNotificationEmail(recipientEmail, subject, body, fromEmail);
+  // Send the email — settings are passed so branding can be applied
+  const result = await sendNotificationEmail(
+    recipientEmail,
+    subject,
+    body,
+    fromEmail,
+    settings
+  );
 
-  // Log the notification
   await createNotificationLog({
     shipmentId,
     merchantId: shipment.merchantId,
@@ -215,7 +215,6 @@ export async function sendAndLogNotification(params: {
     status: result.success ? "SENT" : "FAILED",
   });
 
-  // If successful, mark shipment as notified
   if (result.success) {
     await markShipmentNotified(shipmentId);
   }
@@ -225,12 +224,6 @@ export async function sendAndLogNotification(params: {
 
 /**
  * Prepare a notification email with rendered template for preview
- *
- * This is used by the API endpoint to prepare the notification modal content.
- *
- * @param shipmentId - The shipment to prepare notification for
- * @param merchantId - The merchant ID for validation
- * @returns Prepared notification data or null if shipment not found
  */
 export async function prepareNotification(
   shipmentId: string,
@@ -239,6 +232,7 @@ export async function prepareNotification(
   recipientEmail: string;
   subject: string;
   body: string;
+  htmlPreview: string | null;
   shipment: {
     id: string;
     orderNumber: string;
@@ -248,7 +242,6 @@ export async function prepareNotification(
     carrier: string;
   };
 } | null> {
-  // Load shipment with merchant info
   const shipment = await prisma.shipment.findFirst({
     where: {
       id: shipmentId,
@@ -268,10 +261,9 @@ export async function prepareNotification(
     return null;
   }
 
-  // Parse merchant settings
   const settings = shipment.merchant.settings as MerchantSettings;
+  const parsedSettings = MerchantSettingsSchema.parse(settings);
 
-  // Build template context
   const context = buildTemplateContext(
     {
       customerName: shipment.customerName,
@@ -285,14 +277,21 @@ export async function prepareNotification(
     shipment.merchant.shopDomain
   );
 
-  // Render subject and body
-  const subject = renderTemplate(settings.notificationTemplate.subject, context);
-  const body = renderTemplate(settings.notificationTemplate.body, context);
+  const subject = renderTemplate(parsedSettings.notificationTemplate.subject, context);
+  const body = renderTemplate(parsedSettings.notificationTemplate.body, context);
+
+  // Generate HTML preview if branding is configured
+  let htmlPreview: string | null = null;
+  if (hasBranding(parsedSettings)) {
+    const branding = extractBranding(parsedSettings);
+    htmlPreview = renderHtmlEmail(body, branding);
+  }
 
   return {
     recipientEmail: shipment.customerEmail,
     subject,
     body,
+    htmlPreview,
     shipment: {
       id: shipment.id,
       orderNumber: shipment.orderNumber,
