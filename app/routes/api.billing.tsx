@@ -1,320 +1,214 @@
 /**
- * Billing API Route
+ * Billing Paywall Route
  *
- * Handles billing operations including:
- * - GET: Retrieve current billing info, usage, and features
- * - POST: Handle billing actions (selectPlan, confirmPlan)
- *
- * Actions:
- * - selectPlan: Initiates plan selection/upgrade, returns Shopify confirmation URL
- * - confirmPlan: Handles callback after merchant approves charge in Shopify
+ * Shown when a merchant hasn't selected and authorized a billing plan.
+ * They must accept a plan (with 7-day free trial) before accessing the app.
  */
 
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
-import { z } from "zod";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
+import { useLoaderData, useFetcher } from "@remix-run/react";
+import {
+  Page,
+  Layout,
+  Card,
+  BlockStack,
+  InlineStack,
+  Text,
+  Button,
+  Badge,
+  Box,
+  Divider,
+  Icon,
+  Banner,
+} from "@shopify/polaris";
+import { CheckIcon } from "@shopify/polaris-icons";
+import { useState, useCallback, useEffect } from "react";
 import { authenticate } from "~/shopify.server";
-import {
-  getMerchantByShopId,
-  updateMerchantBilling,
-} from "~/services/merchant.service";
-import {
-  getBillingInfo,
-  getAllPlans,
-  tierToPlanName,
-  planNameToTier,
-  PLAN_NAMES,
-} from "~/services/billing.service";
+import { getAllPlans, PLAN_LIMITS } from "~/services/billing.service";
 import type { PlanTier } from "@prisma/client";
 
-/**
- * Schema for selectPlan action
- */
-const SelectPlanSchema = z.object({
-  action: z.literal("selectPlan"),
-  planTier: z.enum(["STARTER", "PROFESSIONAL", "BUSINESS", "ENTERPRISE"]),
-});
+interface LoaderData {
+  plans: ReturnType<typeof getAllPlans>;
+  apiKey: string;
+}
 
-/**
- * Schema for confirmPlan action
- */
-const ConfirmPlanSchema = z.object({
-  action: z.literal("confirmPlan"),
-  chargeId: z.string().optional(), // May be provided by Shopify redirect
-});
-
-/**
- * Schema for getting billing info
- */
-const GetBillingSchema = z.object({
-  action: z.literal("getBilling"),
-});
-
-/**
- * Union of all action schemas
- */
-const BillingActionSchema = z.discriminatedUnion("action", [
-  SelectPlanSchema,
-  ConfirmPlanSchema,
-  GetBillingSchema,
-]);
-
-/**
- * GET /api/billing
- * Returns billing info, current usage, and available plans
- */
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { session, billing } = await authenticate.admin(request);
+  const { billing } = await authenticate.admin(request);
 
-  const merchant = await getMerchantByShopId(session.shop);
-
-  if (!merchant) {
-    return json(
-      { error: "Merchant not found" },
-      { status: 404 }
-    );
-  }
-
+  // If they already have an active subscription, redirect to app
   try {
-    const billingInfo = await getBillingInfo(merchant);
-    const allPlans = getAllPlans();
-
-    // Check current subscription status from Shopify
-    let hasActiveSubscription = false;
-    let subscriptionPlan: string | null = null;
-
-    try {
-      // Try to get current subscription using billing.check
-      // Use the plan names as configured in shopify.server.ts
-      const subscriptionCheck = await billing.check({
-        plans: ["Starter", "Professional", "Business", "Enterprise"],
-        isTest: process.env.NODE_ENV !== "production",
-      });
-
-      if (subscriptionCheck.hasActivePayment) {
-        hasActiveSubscription = true;
-        subscriptionPlan = subscriptionCheck.appSubscriptions?.[0]?.name ?? null;
-      }
-    } catch {
-      // billing.check may fail if no subscription exists, that's okay
-    }
-
-    return json({
-      billing: billingInfo,
-      plans: allPlans,
-      hasActiveSubscription,
-      subscriptionPlan,
+    const billingCheck = await billing.check({
+      plans: ["Starter", "Professional", "Business", "Enterprise"],
+      isTest: process.env.NODE_ENV !== "production",
     });
-  } catch (error) {
-    console.error("Failed to get billing info:", error);
-    return json(
-      { error: "Failed to get billing information" },
-      { status: 500 }
-    );
-  }
-}
 
-/**
- * POST /api/billing
- * Handles billing actions
- */
-export async function action({ request }: ActionFunctionArgs) {
-  if (request.method !== "POST") {
-    return json(
-      { error: "Method not allowed" },
-      { status: 405 }
-    );
-  }
-
-  const { session, billing } = await authenticate.admin(request);
-
-  const merchant = await getMerchantByShopId(session.shop);
-
-  if (!merchant) {
-    return json(
-      { error: "Merchant not found" },
-      { status: 404 }
-    );
-  }
-
-  // Parse request body
-  let body: unknown;
-  try {
-    body = await request.json();
+    if (billingCheck.hasActivePayment) {
+      return redirect("/app");
+    }
   } catch {
-    return json(
-      { error: "Invalid JSON body" },
-      { status: 400 }
-    );
+    // No subscription - show paywall
   }
 
-  // Validate the action
-  const parseResult = BillingActionSchema.safeParse(body);
-
-  if (!parseResult.success) {
-    return json(
-      {
-        error: "Invalid request",
-        details: parseResult.error.flatten(),
-      },
-      { status: 400 }
-    );
-  }
-
-  const actionData = parseResult.data;
-
-  try {
-    switch (actionData.action) {
-      case "selectPlan":
-        return await handleSelectPlan(merchant.id, actionData.planTier, billing, session.shop);
-
-      case "confirmPlan":
-        return await handleConfirmPlan(merchant.id, billing, session.shop);
-
-      case "getBilling":
-        // Return billing info (same as loader, but via POST)
-        const billingInfo = await getBillingInfo(merchant);
-        return json({ billing: billingInfo });
-
-      default:
-        return json(
-          { error: "Unknown action" },
-          { status: 400 }
-        );
-    }
-  } catch (error) {
-    console.error("Billing action failed:", error);
-    return json(
-      { error: "Billing operation failed" },
-      { status: 500 }
-    );
-  }
+  return json<LoaderData>({
+    plans: getAllPlans(),
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+  });
 }
 
-/**
- * Handle plan selection - creates Shopify subscription and returns confirmation URL
- */
-async function handleSelectPlan(
-  merchantId: string,
-  planTier: PlanTier,
-  billing: any,
-  shop: string
-): Promise<Response> {
-  const planName = tierToPlanName(planTier);
+export async function action({ request }: ActionFunctionArgs) {
+  const { billing } = await authenticate.admin(request);
 
-  console.log(`[billing] Merchant ${merchantId} selecting plan: ${planName}`);
+  const formData = await request.formData();
+  const planName = formData.get("planName") as string;
 
-  try {
-    // Cancel any existing subscription before creating new one
-    // This is handled automatically by Shopify when creating a new subscription
-
-    // Request the subscription from Shopify
-    const response = await billing.request({
-      plan: planName,
-      isTest: process.env.NODE_ENV !== "production",
-      returnUrl: `https://${shop}/admin/apps/${process.env.SHOPIFY_API_KEY}/billing/callback`,
-    });
-
-    // billing.request returns the confirmation URL directly when a redirect is needed
-    // If the response is a redirect, we need to return it
-    if (response.confirmationUrl) {
-      return json({
-        success: true,
-        confirmationUrl: response.confirmationUrl,
-        message: "Redirecting to Shopify to confirm billing",
-      });
-    }
-
-    // If billing was already approved (e.g., test mode with auto-approve)
-    // the subscription is already active
-    if (response.hasActivePayment) {
-      await updateMerchantBilling(merchantId, planTier, "ACTIVE");
-
-      return json({
-        success: true,
-        message: "Plan activated successfully",
-        planTier,
-        planName,
-      });
-    }
-
-    // Fallback - shouldn't normally reach here
-    return json({
-      success: false,
-      error: "Unexpected billing response",
-    });
-  } catch (error: any) {
-    // Check if this is a redirect response (billing.request throws when redirect needed)
-    if (error.confirmationUrl) {
-      return json({
-        success: true,
-        confirmationUrl: error.confirmationUrl,
-        message: "Redirecting to Shopify to confirm billing",
-      });
-    }
-
-    console.error(`[billing] Failed to create subscription for merchant ${merchantId}:`, error);
-    throw error;
+  if (!planName) {
+    return json({ error: "Please select a plan" }, { status: 400 });
   }
+
+  // Request billing through Shopify - this will redirect to Shopify's approval page
+  await billing.request({
+    plan: planName,
+    isTest: process.env.NODE_ENV !== "production",
+  });
+
+  // billing.request throws a redirect response, so we won't reach here
+  return null;
 }
 
-/**
- * Handle plan confirmation after merchant approves in Shopify
- */
-async function handleConfirmPlan(
-  merchantId: string,
-  billing: any,
-  _shop: string
-): Promise<Response> {
-  console.log(`[billing] Confirming plan for merchant ${merchantId}`);
+const PLAN_FEATURE_LIST: Record<string, string[]> = {
+  STARTER: [
+    "Up to 100 shipments/month",
+    "Dashboard with shipment tracking",
+    "Manual delay notifications",
+    "Basic filtering",
+  ],
+  PROFESSIONAL: [
+    "Up to 500 shipments/month",
+    "Everything in Starter",
+    "Multi-carrier display",
+    "Full filtering & sorting",
+    "Bulk actions",
+    "CSV export",
+  ],
+  BUSINESS: [
+    "Up to 2,000 shipments/month",
+    "Everything in Professional",
+    "Analytics & metrics",
+    "Priority carrier polling",
+  ],
+  ENTERPRISE: [
+    "Unlimited shipments",
+    "Everything in Business",
+    "Dedicated support",
+    "Custom integrations",
+  ],
+};
 
-  try {
-    // Check what subscription is now active
-    const subscriptionCheck = await billing.check({
-      plans: Object.values(PLAN_NAMES),
-      isTest: process.env.NODE_ENV !== "production",
-    });
+export default function BillingPaywall() {
+  const { plans } = useLoaderData<LoaderData>();
+  const fetcher = useFetcher<{ error?: string }>();
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
-    if (!subscriptionCheck.hasActivePayment) {
-      return json({
-        success: false,
-        error: "No active subscription found. Please select a plan.",
-      });
-    }
+  const isSubmitting = fetcher.state === "submitting";
 
-    // Find which plan was activated
-    const activePlan = subscriptionCheck.appSubscriptions?.[0]?.name;
+  const handleSelectPlan = useCallback(
+    (planName: string) => {
+      setSelectedPlan(planName);
+      fetcher.submit({ planName }, { method: "POST" });
+    },
+    [fetcher]
+  );
 
-    if (!activePlan) {
-      return json({
-        success: false,
-        error: "Could not determine active plan",
-      });
-    }
+  return (
+    <Page narrowWidth>
+      <BlockStack gap="600">
+        <BlockStack gap="200" inlineAlign="center">
+          <Text as="h1" variant="headingXl" alignment="center">
+            Welcome to DelayGuard
+          </Text>
+          <Text as="p" variant="bodyLg" alignment="center" tone="subdued">
+            Proactive shipment delay detection for your Shopify store.
+            Choose a plan to get started — all plans include a{" "}
+            <Text as="span" fontWeight="semibold" tone="success">
+              free 7-day trial
+            </Text>
+            .
+          </Text>
+        </BlockStack>
 
-    const planTier = planNameToTier(activePlan);
+        {fetcher.data?.error && (
+          <Banner tone="critical" title="Error">
+            <p>{fetcher.data.error}</p>
+          </Banner>
+        )}
 
-    if (!planTier) {
-      console.error(`[billing] Unknown plan name from Shopify: ${activePlan}`);
-      return json({
-        success: false,
-        error: `Unknown plan: ${activePlan}`,
-      });
-    }
+        <Layout>
+          {plans.map((plan) => {
+            const isPopular = plan.isPopular;
+            const features = PLAN_FEATURE_LIST[plan.tier] || [];
+            const isLoading = isSubmitting && selectedPlan === plan.name;
 
-    // Update merchant record with the new plan
-    await updateMerchantBilling(merchantId, planTier, "ACTIVE");
+            return (
+              <Layout.Section key={plan.tier} variant="oneHalf">
+                <Card>
+                  <BlockStack gap="400">
+                    <InlineStack align="space-between" blockAlign="center">
+                      <Text as="h2" variant="headingMd">
+                        {plan.name}
+                      </Text>
+                      {isPopular && <Badge tone="info">Popular</Badge>}
+                    </InlineStack>
 
-    console.log(`[billing] Merchant ${merchantId} plan confirmed: ${planTier}`);
+                    <InlineStack blockAlign="baseline" gap="100">
+                      <Text as="span" variant="heading2xl">
+                        ${plan.price}
+                      </Text>
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        /month
+                      </Text>
+                    </InlineStack>
 
-    return json({
-      success: true,
-      message: "Plan activated successfully",
-      planTier,
-      planName: activePlan,
-    });
-  } catch (error) {
-    console.error(`[billing] Failed to confirm plan for merchant ${merchantId}:`, error);
-    throw error;
-  }
+                    <Text as="p" variant="bodySm" tone="success">
+                      7-day free trial included
+                    </Text>
+
+                    <Divider />
+
+                    <BlockStack gap="200">
+                      {features.map((feature, i) => (
+                        <InlineStack key={i} gap="200" blockAlign="start">
+                          <Box minWidth="20px">
+                            <Icon source={CheckIcon} tone="success" />
+                          </Box>
+                          <Text as="span" variant="bodySm">
+                            {feature}
+                          </Text>
+                        </InlineStack>
+                      ))}
+                    </BlockStack>
+
+                    <Button
+                      variant={isPopular ? "primary" : "secondary"}
+                      fullWidth
+                      onClick={() => handleSelectPlan(plan.name)}
+                      loading={isLoading}
+                      disabled={isSubmitting}
+                    >
+                      Start Free Trial
+                    </Button>
+                  </BlockStack>
+                </Card>
+              </Layout.Section>
+            );
+          })}
+        </Layout>
+
+        <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+          All plans are billed through Shopify. You won't be charged until your
+          7-day trial ends. Cancel anytime.
+        </Text>
+      </BlockStack>
+    </Page>
+  );
 }
