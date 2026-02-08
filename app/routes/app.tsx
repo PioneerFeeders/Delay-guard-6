@@ -1,4 +1,4 @@
-import { json } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
@@ -9,6 +9,8 @@ import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 import { authenticate } from "../shopify.server";
 import { createOrUpdateMerchant, updateShopStatus } from "~/services/merchant.service";
+import { updateMerchantBilling } from "~/services/merchant.service";
+import { planNameToTier } from "~/services/billing.service";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -16,17 +18,39 @@ interface LoaderData {
   apiKey: string;
   shopFrozen: boolean;
   shopPlanName: string | null;
+  planTier: string;
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session, admin, billing } = await authenticate.admin(request);
 
-  // Create or update merchant record on first load after OAuth
-  // This ensures merchant exists before any other operations
+  // ── Billing gate: require active subscription ──────────────
+  // Check if merchant has an active billing subscription
+  // If not, redirect to the billing paywall
+  let hasActiveSubscription = false;
+  let activePlanName: string | null = null;
+
+  try {
+    const billingCheck = await billing.check({
+      plans: ["Starter", "Professional", "Business", "Enterprise"],
+      isTest: process.env.NODE_ENV !== "production",
+    });
+
+    hasActiveSubscription = billingCheck.hasActivePayment;
+    activePlanName = billingCheck.appSubscriptions?.[0]?.name ?? null;
+  } catch {
+    // billing.check can fail if no subscription exists
+  }
+
+  if (!hasActiveSubscription) {
+    // Redirect to billing paywall
+    throw redirect("/app/billing");
+  }
+
+  // ── Create/update merchant record ──────────────────────────
   const shopifyShopId = session.shop;
   const shopDomain = session.shop;
 
-  // Fetch shop details from Shopify to get email and shop status
   let email = "";
   let shopFrozen = false;
   let shopPlanName: string | null = null;
@@ -51,10 +75,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const timezone = data.data?.shop?.ianaTimezone;
     const plan = data.data?.shop?.plan;
 
-    // Check if shop is frozen/paused
-    // A shop is considered frozen if:
-    // - It's on a paused/frozen plan (checkoutApiSupported is false for frozen shops)
-    // - The plan indicates it's dormant
     const checkoutApiSupported = data.data?.shop?.checkoutApiSupported ?? true;
     shopFrozen = !checkoutApiSupported;
     shopPlanName = plan?.displayName ?? null;
@@ -72,11 +92,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         shopFrozen,
         shopPlanName,
       });
+
+      // Sync billing status with Shopify subscription
+      // This ensures the merchant record reflects the actual plan they're paying for
+      if (activePlanName) {
+        const tier = planNameToTier(activePlanName);
+        if (tier && (merchant.planTier !== tier || merchant.billingStatus !== "ACTIVE")) {
+          await updateMerchantBilling(merchant.id, tier, "ACTIVE");
+        }
+      }
     }
   } catch (error) {
-    // Log error but don't fail the request - merchant creation can be retried
     console.error("Error creating/updating merchant:", error);
-    // Still try to create with basic info
     await createOrUpdateMerchant({
       shopifyShopId,
       shopDomain,
@@ -84,15 +111,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
+  // Determine the plan tier for feature gating
+  const planTier = activePlanName
+    ? planNameToTier(activePlanName) || "STARTER"
+    : "STARTER";
+
   return json<LoaderData>({
     apiKey: process.env.SHOPIFY_API_KEY || "",
     shopFrozen,
     shopPlanName,
+    planTier,
   });
 };
 
 export default function App() {
-  const { apiKey, shopFrozen } = useLoaderData<LoaderData>();
+  const { apiKey, shopFrozen, planTier } = useLoaderData<LoaderData>();
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
@@ -116,11 +149,11 @@ export default function App() {
                 is reactivated.
               </Text>
             </Banner>
-            <Outlet />
+            <Outlet context={{ planTier }} />
           </BlockStack>
         </Page>
       ) : (
-        <Outlet />
+        <Outlet context={{ planTier }} />
       )}
     </AppProvider>
   );
