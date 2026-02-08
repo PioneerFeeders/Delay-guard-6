@@ -29,6 +29,7 @@ const shopify = shopifyApp({
           interval: BillingInterval.Every30Days,
         },
       ],
+      trialDays: 7,
     },
     Professional: {
       lineItems: [
@@ -38,6 +39,7 @@ const shopify = shopifyApp({
           interval: BillingInterval.Every30Days,
         },
       ],
+      trialDays: 7,
     },
     Business: {
       lineItems: [
@@ -47,6 +49,7 @@ const shopify = shopifyApp({
           interval: BillingInterval.Every30Days,
         },
       ],
+      trialDays: 7,
     },
     Enterprise: {
       lineItems: [
@@ -56,6 +59,7 @@ const shopify = shopifyApp({
           interval: BillingInterval.Every30Days,
         },
       ],
+      trialDays: 7,
     },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
