@@ -51,6 +51,23 @@ Thank you for your patience!
     })
     .default({}),
   fromEmail: z.string().email().nullable().default(null),
+
+  // ── Email Branding ──────────────────────────────────────────
+  // Logo displayed in the email header
+  emailBranding: z
+    .object({
+      logoUrl: z.string().url().nullable().default(null),
+      logoWidth: z.number().min(50).max(600).default(200),
+      logoAlt: z.string().max(100).default(""),
+      // Footer contact info
+      footerCompanyName: z.string().max(200).default(""),
+      footerAddressLine1: z.string().max(200).default(""),
+      footerAddressLine2: z.string().max(200).default(""),
+      footerPhone: z.string().max(50).default(""),
+      footerEmail: z.string().max(200).default(""),
+      footerWebsite: z.string().max(200).default(""),
+    })
+    .default({}),
 });
 
 export type MerchantSettings = z.infer<typeof MerchantSettingsSchema>;
@@ -140,8 +157,8 @@ export const FulfillmentWebhookPayloadSchema = z.object({
   origin_address: z.record(z.unknown()).nullable().optional(),
   destination: ShippingAddressSchema.nullable().optional(),
   line_items: z.array(FulfillmentLineItemSchema).optional(),
-  name: z.string().optional(), // Fulfillment name, e.g., "#1001-F1"
-  service: z.string().nullable().optional(), // Service level
+  name: z.string().optional(),
+  service: z.string().nullable().optional(),
   receipt: z.record(z.unknown()).nullable().optional(),
   admin_graphql_api_id: z.string().optional(),
 });
@@ -150,12 +167,10 @@ export type FulfillmentWebhookPayload = z.infer<typeof FulfillmentWebhookPayload
 
 /**
  * Order data schema (partial - fields we need from fulfillment webhook context)
- * Note: The full order is not included in fulfillment webhooks, but we may need
- * to fetch it separately for customer info and order value.
  */
 export const OrderPartialSchema = z.object({
   id: z.number(),
-  name: z.string(), // Order number like "#1001"
+  name: z.string(),
   email: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   total_price: z.string().nullable().optional(),
@@ -180,9 +195,9 @@ export type OrderPartial = z.infer<typeof OrderPartialSchema>;
  */
 export const AppUninstalledWebhookPayloadSchema = z.object({
   id: z.number(),
-  name: z.string().optional(), // Shop name
-  email: z.string().optional(), // Shop email
-  domain: z.string().optional(), // myshopify domain
+  name: z.string().optional(),
+  email: z.string().optional(),
+  domain: z.string().optional(),
   myshopify_domain: z.string().optional(),
 });
 
@@ -220,27 +235,15 @@ export function safeParseAppUninstalledPayload(data: unknown) {
 // API Query Parameter Schemas
 // ============================================================
 
-/**
- * Tab filter values for shipment list
- */
 export const ShipmentTabSchema = z.enum(["all", "delayed", "pending", "resolved", "delivered"]);
 export type ShipmentTab = z.infer<typeof ShipmentTabSchema>;
 
-/**
- * Delay status filter values
- */
 export const DelayStatusSchema = z.enum(["delayed", "on_time", "pending"]);
 export type DelayStatus = z.infer<typeof DelayStatusSchema>;
 
-/**
- * Sort direction
- */
 export const SortDirectionSchema = z.enum(["asc", "desc"]);
 export type SortDirection = z.infer<typeof SortDirectionSchema>;
 
-/**
- * Valid columns for sorting shipments
- */
 export const ShipmentSortColumnSchema = z.enum([
   "orderNumber",
   "trackingNumber",
@@ -257,51 +260,26 @@ export const ShipmentSortColumnSchema = z.enum([
 ]);
 export type ShipmentSortColumn = z.infer<typeof ShipmentSortColumnSchema>;
 
-/**
- * Query parameters for the shipments API endpoint
- */
 export const ShipmentsQueryParamsSchema = z.object({
-  // Tab filter (maps to status-based filters)
   tab: ShipmentTabSchema.default("all"),
-
-  // Carrier filter
   carrier: CarrierSchema.optional(),
-
-  // Service level filter (free text, exact match)
   serviceLevel: z.string().optional(),
-
-  // Delay status filter
   delayStatus: DelayStatusSchema.optional(),
-
-  // Order value range filters
   orderValueMin: z.coerce.number().min(0).optional(),
   orderValueMax: z.coerce.number().min(0).optional(),
-
-  // Ship date range filters (ISO date strings)
   shipDateFrom: z.string().datetime({ offset: true }).optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
   shipDateTo: z.string().datetime({ offset: true }).optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
-
-  // Fulfillment location filter
   locationId: z.string().optional(),
-
-  // Sorting
   sortBy: ShipmentSortColumnSchema.default("daysDelayed"),
   sortDir: SortDirectionSchema.default("desc"),
-
-  // Pagination
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(50),
 });
 
 export type ShipmentsQueryParams = z.infer<typeof ShipmentsQueryParamsSchema>;
 
-/**
- * Parse and validate shipments query parameters from URL search params
- */
 export function parseShipmentsQueryParams(searchParams: URLSearchParams): ShipmentsQueryParams {
   const rawParams: Record<string, string | undefined> = {};
-
-  // Extract all relevant params
   const paramNames = [
     "tab", "carrier", "serviceLevel", "delayStatus",
     "orderValueMin", "orderValueMax",
@@ -310,32 +288,23 @@ export function parseShipmentsQueryParams(searchParams: URLSearchParams): Shipme
     "sortBy", "sortDir",
     "page", "pageSize"
   ];
-
   for (const name of paramNames) {
     const value = searchParams.get(name);
     if (value !== null && value !== "") {
       rawParams[name] = value;
     }
   }
-
   return ShipmentsQueryParamsSchema.parse(rawParams);
 }
 
-/**
- * Safe parse for shipments query parameters (returns default values on invalid input)
- */
 export function safeParseShipmentsQueryParams(searchParams: URLSearchParams): ShipmentsQueryParams {
   try {
     return parseShipmentsQueryParams(searchParams);
   } catch {
-    // Return defaults on any parse error
     return ShipmentsQueryParamsSchema.parse({});
   }
 }
 
-/**
- * Response shape for the shipments API endpoint
- */
 export interface ShipmentsApiResponse {
   shipments: ShipmentListItem[];
   pagination: {
@@ -352,9 +321,6 @@ export interface ShipmentsApiResponse {
   };
 }
 
-/**
- * Shipment data returned in list view
- */
 export interface ShipmentListItem {
   id: string;
   orderNumber: string;
