@@ -62,13 +62,14 @@ export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const planName = formData.get("planName") as string;
 
-  if (!planName) {
-    return json({ error: "Please select a plan" }, { status: 400 });
+  const validPlans = ["Starter", "Professional", "Business", "Enterprise"] as const;
+  if (!planName || !validPlans.includes(planName as typeof validPlans[number])) {
+    return json({ error: "Please select a valid plan" }, { status: 400 });
   }
 
   // Request billing through Shopify - this will redirect to Shopify's approval page
   await billing.request({
-    plan: planName,
+    plan: planName as typeof validPlans[number],
     isTest: process.env.NODE_ENV !== "production",
   });
 
