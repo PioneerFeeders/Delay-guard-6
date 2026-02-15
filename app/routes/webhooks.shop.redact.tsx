@@ -1,7 +1,6 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
-
 // Mandatory compliance webhook: shop/redact
 // Shopify sends this 48 hours after a store uninstalls your app.
 
