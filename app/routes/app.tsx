@@ -1,4 +1,4 @@
-import { redirect } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
@@ -25,10 +25,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin, billing } = await authenticate.admin(request);
 
   // ── Billing gate: require active subscription ──────────────
-  // Skip billing check when already on the billing page to avoid redirect loop
-  const url = new URL(request.url);
-  const isBillingPage = url.pathname === "/app/billing";
-
+  // Check if merchant has an active billing subscription
+  // If not, redirect to the billing paywall
   let hasActiveSubscription = false;
   let activePlanName: string | null = null;
 
@@ -44,20 +42,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // billing.check can fail if no subscription exists
   }
 
-  if (!hasActiveSubscription && !isBillingPage) {
+  if (!hasActiveSubscription) {
     // Redirect to billing paywall
     throw redirect("/app/billing");
-  }
-
-  // On the billing page without a subscription, return minimal data
-  // to render the layout wrapper (AppProvider) for the billing child route
-  if (!hasActiveSubscription && isBillingPage) {
-    return {
-      apiKey: process.env.SHOPIFY_API_KEY || "",
-      shopFrozen: false,
-      shopPlanName: null,
-      planTier: "STARTER",
-    } satisfies LoaderData;
   }
 
   // ── Create/update merchant record ──────────────────────────
@@ -129,12 +116,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     ? planNameToTier(activePlanName) || "STARTER"
     : "STARTER";
 
-  return {
+  return json<LoaderData>({
     apiKey: process.env.SHOPIFY_API_KEY || "",
     shopFrozen,
     shopPlanName,
     planTier,
-  } satisfies LoaderData;
+  });
 };
 
 export default function App() {

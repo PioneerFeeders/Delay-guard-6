@@ -9,7 +9,7 @@
  */
 
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
-import { data, redirect } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import { Page, BlockStack, Box, InlineStack, Text } from "@shopify/polaris";
 import { useState, useCallback, useEffect } from "react";
@@ -56,13 +56,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return redirect("/app");
   }
 
-  return {
+  return json<LoaderData>({
     shop: session.shop,
     merchantId: merchant.id,
     settings: merchant.settings,
     timezone: merchant.timezone,
     onboardingDone: merchant.onboardingDone,
-  } satisfies LoaderData;
+  });
 }
 
 interface ActionData {
@@ -76,7 +76,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const merchant = await getMerchantByShopId(session.shop);
   if (!merchant) {
-    return data<ActionData>(
+    return json<ActionData>(
       { success: false, error: "Merchant not found" },
       { status: 404 }
     );
@@ -104,7 +104,7 @@ export async function action({ request }: ActionFunctionArgs) {
           });
         }
 
-        return { success: true, action: "savePreferences" } satisfies ActionData;
+        return json<ActionData>({ success: true, action: "savePreferences" });
       }
 
       case "addTestShipment": {
@@ -138,23 +138,23 @@ export async function action({ request }: ActionFunctionArgs) {
           },
         });
 
-        return { success: true, action: "addTestShipment" } satisfies ActionData;
+        return json<ActionData>({ success: true, action: "addTestShipment" });
       }
 
       case "completeOnboarding": {
         await completeOnboarding(merchant.id);
-        return { success: true, action: "completeOnboarding" } satisfies ActionData;
+        return json<ActionData>({ success: true, action: "completeOnboarding" });
       }
 
       default:
-        return data<ActionData>(
+        return json<ActionData>(
           { success: false, error: "Unknown action" },
           { status: 400 }
         );
     }
   } catch (error) {
     console.error("[onboarding] Action error:", error);
-    return data<ActionData>(
+    return json<ActionData>(
       { success: false, error: "An error occurred" },
       { status: 500 }
     );

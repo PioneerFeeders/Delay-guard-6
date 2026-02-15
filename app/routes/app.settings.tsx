@@ -11,6 +11,7 @@
  */
 
 import type { LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import { Page, Layout, BlockStack, Banner, Tabs, Card, Text, Spinner, Box } from "@shopify/polaris";
 import { useState, useCallback, useEffect } from "react";
@@ -43,14 +44,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const merchant = await getMerchantByShopId(session.shop);
 
   if (!merchant) {
-    return {
+    return json<LoaderData>({
       settings: parseMerchantSettings({}),
       timezone: "America/New_York",
       shop: session.shop,
       billingInfo: null,
       allPlans: getAllPlans(),
       hasActiveSubscription: false,
-    } satisfies LoaderData;
+    });
   }
 
   // Get billing info
@@ -86,14 +87,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     console.error("Failed to get billing info:", error);
   }
 
-  return {
+  return json<LoaderData>({
     settings: parseMerchantSettings(merchant.settings),
     timezone: merchant.timezone,
     shop: session.shop,
     billingInfo,
     allPlans: getAllPlans(),
     hasActiveSubscription,
-  } satisfies LoaderData;
+  });
 }
 
 export default function SettingsPage() {

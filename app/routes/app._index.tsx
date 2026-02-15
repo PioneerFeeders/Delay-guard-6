@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
-import { redirect } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import { useLoaderData, useSearchParams, useFetcher } from "@remix-run/react";
 import { Page, BlockStack, Card, Text, Pagination, Box, InlineStack, Divider } from "@shopify/polaris";
 import { useCallback, useEffect, useState, useMemo } from "react";
@@ -64,7 +64,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!merchant) {
     // Merchant record should exist from app.tsx loader
     // Show dashboard anyway, it will be created on next request
-    return {
+    return json<LoaderData>({
       shop: session.shop,
       summary: {
         totalActive: 0,
@@ -87,7 +87,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       settings: defaultSettings,
       locations: [],
       serviceLevels: [],
-    } satisfies LoaderData;
+    });
   }
 
   if (!merchant.onboardingDone) {
@@ -254,7 +254,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     .map((s) => s.serviceLevel)
     .filter((s): s is string => s !== null);
 
-  return {
+  return json<LoaderData>({
     shop: session.shop,
     summary,
     tabCounts,
@@ -262,7 +262,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     settings,
     locations,
     serviceLevels,
-  } satisfies LoaderData;
+  });
 };
 
 export default function Index() {
