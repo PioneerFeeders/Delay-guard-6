@@ -49,6 +49,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw redirect("/app/billing");
   }
 
+  // On the billing page without a subscription, return minimal data
+  // to render the layout wrapper (AppProvider) for the billing child route
+  if (!hasActiveSubscription && isBillingPage) {
+    return json<LoaderData>({
+      apiKey: process.env.SHOPIFY_API_KEY || "",
+      shopFrozen: false,
+      shopPlanName: null,
+      planTier: "STARTER",
+    });
+  }
+
   // ── Create/update merchant record ──────────────────────────
   const shopifyShopId = session.shop;
   const shopDomain = session.shop;
