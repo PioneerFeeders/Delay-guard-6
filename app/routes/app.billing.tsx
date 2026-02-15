@@ -6,7 +6,7 @@
  */
 
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
+import { data, redirect } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
   Page,
@@ -50,10 +50,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // No subscription - show paywall
   }
 
-  return json<LoaderData>({
+  return {
     plans: getAllPlans(),
     apiKey: process.env.SHOPIFY_API_KEY || "",
-  });
+  } satisfies LoaderData;
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -64,7 +64,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const validPlans = ["Starter", "Professional", "Business", "Enterprise"] as const;
   if (!planName || !validPlans.includes(planName as typeof validPlans[number])) {
-    return json({ error: "Please select a valid plan" }, { status: 400 });
+    return data({ error: "Please select a valid plan" }, { status: 400 });
   }
 
   // Request billing through Shopify - this will redirect to Shopify's approval page

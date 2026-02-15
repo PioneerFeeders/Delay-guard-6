@@ -1,4 +1,4 @@
-import { json, redirect } from "@remix-run/node";
+import { data, redirect } from "@remix-run/node";
 import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
@@ -52,12 +52,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // On the billing page without a subscription, return minimal data
   // to render the layout wrapper (AppProvider) for the billing child route
   if (!hasActiveSubscription && isBillingPage) {
-    return json<LoaderData>({
+    return {
       apiKey: process.env.SHOPIFY_API_KEY || "",
       shopFrozen: false,
       shopPlanName: null,
       planTier: "STARTER",
-    });
+    } satisfies LoaderData;
   }
 
   // ── Create/update merchant record ──────────────────────────
@@ -129,12 +129,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     ? planNameToTier(activePlanName) || "STARTER"
     : "STARTER";
 
-  return json<LoaderData>({
+  return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
     shopFrozen,
     shopPlanName,
     planTier,
-  });
+  } satisfies LoaderData;
 };
 
 export default function App() {

@@ -6,7 +6,7 @@
  */
 
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
+import { data } from "@remix-run/node";
 import { z } from "zod";
 import { authenticate } from "~/shopify.server";
 import { prisma } from "~/db.server";
@@ -28,7 +28,7 @@ const BulkNotifyRequestSchema = z.object({
 export const action = async ({ request }: ActionFunctionArgs) => {
   // Only allow POST
   if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405 });
+    return data({ error: "Method not allowed" }, { status: 405 });
   }
 
   const { session } = await authenticate.admin(request);
@@ -45,7 +45,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
 
   if (!merchant) {
-    return json({ error: "Merchant not found" }, { status: 404 });
+    return data({ error: "Merchant not found" }, { status: 404 });
   }
 
   // Parse and validate request body
@@ -55,12 +55,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     body = BulkNotifyRequestSchema.parse(rawBody);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return json(
+      return data(
         { error: "Invalid request body", details: err.errors },
         { status: 400 }
       );
     }
-    return json({ error: "Failed to parse request body" }, { status: 400 });
+    return data({ error: "Failed to parse request body" }, { status: 400 });
   }
 
   const { shipmentIds, skipAlreadyNotified } = body;
@@ -99,7 +99,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // If no shipments found
   if (shipments.length === 0) {
-    return json({
+    return data({
       success: true,
       queuedCount: 0,
       skippedCount: shipmentIds.length,
@@ -154,7 +154,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await enqueueBulkNotificationJobs(notificationJobs);
   } catch (err) {
     console.error("[bulk-notify] Failed to enqueue notification jobs:", err);
-    return json(
+    return data(
       { error: "Failed to queue notifications" },
       { status: 500 }
     );
@@ -162,7 +162,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const skippedCount = shipmentIds.length - shipments.length;
 
-  return json({
+  return data({
     success: true,
     queuedCount: notificationJobs.length,
     skippedCount,

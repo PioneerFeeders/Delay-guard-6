@@ -5,7 +5,7 @@
  */
 
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
+import { data } from "@remix-run/node";
 import { z } from "zod";
 import { authenticate } from "~/shopify.server";
 import { prisma } from "~/db.server";
@@ -24,7 +24,7 @@ const BulkResolveRequestSchema = z.object({
 export const action = async ({ request }: ActionFunctionArgs) => {
   // Only allow POST
   if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405 });
+    return data({ error: "Method not allowed" }, { status: 405 });
   }
 
   const { session } = await authenticate.admin(request);
@@ -39,7 +39,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
 
   if (!merchant) {
-    return json({ error: "Merchant not found" }, { status: 404 });
+    return data({ error: "Merchant not found" }, { status: 404 });
   }
 
   // Parse and validate request body
@@ -49,12 +49,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     body = BulkResolveRequestSchema.parse(rawBody);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return json(
+      return data(
         { error: "Invalid request body", details: err.errors },
         { status: 400 }
       );
     }
-    return json({ error: "Failed to parse request body" }, { status: 400 });
+    return data({ error: "Failed to parse request body" }, { status: 400 });
   }
 
   const { shipmentIds, resolutionReason, notes } = body;
@@ -69,7 +69,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       notes,
     });
 
-    return json({
+    return data({
       success: true,
       successCount: result.successCount,
       failureCount: result.failureCount,
@@ -78,7 +78,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   } catch (err) {
     console.error("[bulk-resolve] Failed to resolve shipments:", err);
-    return json(
+    return data(
       { error: "Failed to resolve shipments" },
       { status: 500 }
     );
