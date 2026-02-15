@@ -30,29 +30,8 @@ uri = "/webhooks/fulfillments/update"
 
 [[webhooks.subscriptions]]
 topics = ["app/uninstalled"]
-uri = "/webhooks/app/uninstalled"
-
-# Mandatory compliance webhooks for customer privacy
-[[webhooks.subscriptions]]
-topics = ["customers/data_request"]
-uri = "/webhooks/customers/data_request"
-compliance_topics = ["customers/data_request"]
-
-[[webhooks.subscriptions]]
-topics = ["customers/redact"]
-uri = "/webhooks/customers/redact"
-compliance_topics = ["customers/redact"]
-
-[[webhooks.subscriptions]]
-topics = ["shop/redact"]
-uri = "/webhooks/shop/redact"
-compliance_topics = ["shop/redact"]
-
-# [app_proxy]
-# Uncomment if using app proxy
-# url = "https://your-app.railway.app"
-# subpath = "apps"
-# prefix = "apps"
+compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+uri = "/webhooks"
 
 [pos]
 embedded = false
