@@ -1,0 +1,193 @@
+# DelayGuard — Frequently Asked Questions
+
+---
+
+## Getting Started
+
+### 1. What is DelayGuard?
+
+DelayGuard is a Shopify app that automatically monitors your fulfilled orders and detects when shipments are running behind their expected delivery date. When a delay is identified, you can send proactive notifications to affected customers directly from the app before they need to reach out to you. Everything is managed from a single dashboard inside your Shopify admin.
+
+### 2. How do I install DelayGuard?
+
+Find DelayGuard in the Shopify App Store and click "Add app." You'll be redirected to your Shopify admin to authorize the app. Once installed, DelayGuard appears under Apps in your Shopify admin sidebar. No additional account creation or external login is required.
+
+### 3. Does DelayGuard require any technical setup or coding?
+
+No. DelayGuard works out of the box once installed. It automatically reads your fulfillment data from Shopify and begins monitoring shipments. You can optionally adjust delay thresholds and notification templates in the Settings page, but the defaults are designed to work well for most stores.
+
+### 4. Is there a free trial?
+
+Yes. All plans include a 14-day free trial so you can evaluate the app with your real shipment data before being charged. You can cancel anytime during the trial period without being billed.
+
+### 5. What Shopify plans is DelayGuard compatible with?
+
+DelayGuard works with all Shopify plans including Basic Shopify, Shopify, Advanced Shopify, and Shopify Plus. The app uses standard Shopify APIs and does not require any plan-specific features.
+
+---
+
+## How It Works
+
+### 6. How does DelayGuard detect delayed shipments?
+
+When you fulfill an order in Shopify, the carrier provides an estimated delivery date. DelayGuard compares the current date against that expected delivery date. If a shipment passes the expected date without a delivery confirmation, it gets flagged as delayed. You configure the thresholds for when a shipment is considered a "warning" versus "critical."
+
+### 7. Which carriers does DelayGuard support?
+
+DelayGuard works with any carrier that provides tracking information through Shopify's fulfillment system. This includes UPS, USPS, FedEx, DHL, and any other carrier integrated with your Shopify store. If Shopify can track it, DelayGuard can monitor it.
+
+### 8. How often does DelayGuard check for delayed shipments?
+
+DelayGuard monitors your fulfillments continuously. When a fulfillment event occurs or tracking information updates, the app evaluates whether the shipment has exceeded your configured delay thresholds. You don't need to manually refresh or trigger scans.
+
+### 9. What do "Warning" and "Critical" status mean?
+
+These are configurable severity levels based on how many days a shipment is past its expected delivery date. By default, a shipment is flagged as "Warning" after 1 day past expected delivery and "Critical" after 3 days. You can adjust both thresholds in Settings to match your business needs and carrier performance.
+
+### 10. Does DelayGuard track shipments that haven't been fulfilled yet?
+
+No. DelayGuard only monitors orders that have been fulfilled and have tracking information. Unfulfilled orders remain in your standard Shopify order management workflow. Once you add a fulfillment with a tracking number, DelayGuard begins monitoring that shipment.
+
+### 11. What happens when a delayed shipment is finally delivered?
+
+When a carrier confirms delivery, DelayGuard can automatically resolve the delay and update the shipment status on your dashboard. You can configure the auto-resolve setting in Settings, which clears the delay flag a set number of days after delivery confirmation.
+
+---
+
+## Notifications
+
+### 12. How do customer notifications work?
+
+When DelayGuard identifies a delayed shipment, you can send a notification email to the affected customer. The email is generated from a customizable template that automatically fills in the customer's name, order number, tracking number, and carrier. You can review and edit the message before sending, or send it with one click using the template defaults.
+
+### 13. Can I customize the notification email template?
+
+Yes. The Settings page includes a full email template editor where you can modify the subject line and email body. Template variables like customer name, order number, tracking number, carrier name, and shop name are automatically populated. A live preview shows exactly what the customer will receive.
+
+### 14. Can I edit a notification before sending it to a specific customer?
+
+Yes. When viewing a delayed shipment, the notification panel shows the pre-populated email. You can click "Edit message" to modify the text for that specific customer before sending. This does not change your saved template.
+
+### 15. Does DelayGuard send notifications automatically?
+
+You can enable auto-notifications in Settings. When turned on, DelayGuard will automatically send the notification email when a shipment reaches "Critical" status. If you prefer to review each notification manually, leave this setting off and send notifications individually or in bulk from the dashboard.
+
+### 16. Can I send notifications in bulk?
+
+Yes. The dashboard allows you to select multiple delayed shipments using checkboxes and send notifications to all selected customers at once using the "Notify all" button. This is particularly useful during carrier disruptions or weather events that affect many shipments simultaneously.
+
+### 17. Will customers receive duplicate notifications?
+
+No. DelayGuard tracks whether a customer has already been notified about a specific delay. The notification status is visible on the dashboard as "Sent" or "Not sent." If you need to send a follow-up, you can do so manually from the shipment detail view, but the app will not automatically send a second notification for the same delay.
+
+### 18. What email address do notifications come from?
+
+Notifications are sent from your store's email address as configured in Shopify. This ensures customers see a familiar sender and the email aligns with your existing brand communication.
+
+### 19. Can I send a follow-up notification when a delayed shipment is finally delivered?
+
+Yes. There is a toggle in Settings called "Notify on delivery confirmation" that sends a follow-up email to customers whose shipments were previously delayed and have now been delivered. This closes the loop and reassures the customer that their order has arrived.
+
+---
+
+## Dashboard & Management
+
+### 20. What information is shown on the dashboard?
+
+The dashboard displays four key metrics at the top: total active shipments, number of delayed shipments, number of customers notified, and your current on-time delivery rate. Below the metrics, an alert banner highlights shipments that need immediate attention. The main table lists all delayed shipments with their order number, customer name, carrier, severity level, days delayed, and notification status.
+
+### 21. Can I filter and sort the delayed shipments table?
+
+Yes. You can filter shipments by severity level (Warning or Critical), carrier, notification status (Sent or Not sent), and date range. The table is sortable by any column, making it easy to prioritize which shipments to address first.
+
+### 22. What does "Resolve" mean?
+
+Resolving a shipment removes it from the active delayed list on your dashboard. You would resolve a shipment after you've contacted the customer, confirmed delivery, or determined the delay has been addressed. Resolved shipments are kept in your history for reporting purposes but no longer appear as active issues.
+
+### 23. Can I resolve shipments in bulk?
+
+Yes. Select multiple shipments using the checkboxes on the dashboard and click "Resolve all" to clear them from your active delayed list at once. This is useful for end-of-day cleanup or after a batch of delayed shipments have been delivered.
+
+### 24. Can I view the full tracking history for a shipment?
+
+Yes. Clicking "View" on any shipment in the dashboard opens the shipment detail page, which includes a complete tracking timeline showing every carrier scan event, timestamps, and locations. This gives you full visibility into where the shipment is and what caused the delay without leaving the app.
+
+---
+
+## Settings & Configuration
+
+### 25. What are delay detection thresholds?
+
+Thresholds define when a shipment gets flagged based on how many days it has exceeded the expected delivery date. There are three configurable thresholds: Warning (default: 1 day late), Critical (default: 3 days late), and Auto-Resolve (default: 1 day after delivery confirmed). Adjust these based on your carrier performance and customer expectations.
+
+### 26. Can I receive a daily summary of delayed shipments?
+
+Yes. Enable the "Daily delay summary email" toggle in Settings to receive a daily digest sent to your store email. The summary includes the count of newly delayed shipments, current delayed shipments by severity, and any shipments that were resolved or delivered since the last summary.
+
+### 27. What is the Auto-Resolve threshold?
+
+The Auto-Resolve threshold determines how many days after a carrier confirms delivery that a delayed shipment is automatically removed from your active dashboard. Setting this to 1 day (the default) means that once a carrier marks a shipment as delivered, DelayGuard will clear the delay flag the following day. Set it to 0 for immediate resolution on delivery confirmation.
+
+---
+
+## Data & Privacy
+
+### 28. What data does DelayGuard access from my Shopify store?
+
+DelayGuard accesses your order and fulfillment data, including order numbers, customer names, email addresses, tracking numbers, and carrier information. This data is used exclusively to monitor shipment status and send delay notifications. DelayGuard does not access your product catalog, financial data, or store settings beyond what is needed for shipment monitoring.
+
+### 29. Does DelayGuard store customer data?
+
+DelayGuard processes customer data (names and email addresses) to send delay notifications. Data retention follows Shopify's compliance requirements. When a store uninstalls the app, all associated data is deleted within 48 hours. DelayGuard fully supports Shopify's mandatory privacy webhooks for customer data requests, customer data erasure, and shop data erasure.
+
+### 30. Is DelayGuard GDPR compliant?
+
+Yes. DelayGuard implements all of Shopify's mandatory compliance webhooks, including customer data request, customer data redaction, and shop data redaction. The app only processes the minimum customer data necessary to provide its service. If a customer or merchant requests data deletion, it is handled in accordance with GDPR and Shopify's privacy requirements.
+
+---
+
+## Billing & Plans
+
+### 31. What plans are available?
+
+DelayGuard offers four plans: Starter ($9.99/month), Professional ($29.99/month), Business ($79.99/month), and Enterprise ($149.99/month). All plans include a 14-day free trial. Higher-tier plans include increased shipment monitoring limits, priority support, and advanced features. Full plan details and feature comparisons are available on the app listing page.
+
+### 32. How does billing work?
+
+DelayGuard uses Shopify's managed billing system. Charges appear on your regular Shopify invoice alongside your other app charges and Shopify subscription. You can manage your subscription, upgrade, downgrade, or cancel directly from your Shopify admin. No separate payment method or billing account is needed.
+
+### 33. Can I change plans or cancel at any time?
+
+Yes. You can upgrade, downgrade, or cancel your plan at any time from your Shopify admin. If you cancel, you retain access through the end of your current billing period. Shopify handles prorated charges for mid-cycle plan changes.
+
+### 34. Do I get charged during the free trial?
+
+No. The 14-day free trial gives you full access to your selected plan's features at no cost. You will only be charged after the trial period ends. You can cancel anytime during the trial without being billed.
+
+---
+
+## Troubleshooting
+
+### 35. Why don't I see any shipments on my dashboard?
+
+The dashboard only shows shipments that have been fulfilled with tracking information and have exceeded your configured delay thresholds. If all your current shipments are on time, the delayed shipments table will be empty, which is a good thing. Verify that your orders have fulfillments with tracking numbers in Shopify.
+
+### 36. A shipment is delayed but not showing up in DelayGuard. Why?
+
+This can happen if the carrier has not provided an expected delivery date, or if the tracking number was not included when the order was fulfilled. DelayGuard requires both a tracking number and carrier-provided delivery estimate to calculate whether a shipment is delayed. Check that the fulfillment in Shopify has a valid tracking number.
+
+### 37. My notification was not delivered to the customer. What happened?
+
+Notification delivery depends on the customer's email being valid and their email provider accepting the message. Check the shipment detail view to confirm the notification status shows "Sent." If the email was sent but not received, the issue may be on the customer's end (spam filter, full inbox, invalid address). You can resend the notification or contact the customer through another channel.
+
+### 38. The on-time rate seems incorrect. How is it calculated?
+
+The on-time delivery rate is calculated as the percentage of fulfilled shipments that were delivered on or before their expected delivery date within the selected time period. Shipments still in transit (not yet past their expected delivery date) are not included in the calculation. Only shipments with a confirmed delivery status or that have exceeded their expected date are counted.
+
+### 39. Can I export my delayed shipment data?
+
+Yes. Use the "Export selected" button on the dashboard to download a file of your selected delayed shipments. This can be useful for internal reporting, carrier performance reviews, or sharing with your fulfillment team.
+
+### 40. How do I contact support?
+
+For questions, issues, or feature requests, reach out through the app's support channel listed on the Shopify App Store listing page. Include your store URL and a description of the issue so we can assist you quickly.
