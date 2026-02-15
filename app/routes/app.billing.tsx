@@ -22,15 +22,11 @@ import {
   Icon,
   Banner,
 } from "@shopify/polaris";
-import { AppProvider } from "@shopify/shopify-app-remix/react";
-import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { CheckIcon } from "@shopify/polaris-icons";
 import { useState, useCallback, useEffect } from "react";
 import { authenticate } from "~/shopify.server";
 import { getAllPlans, PLAN_LIMITS } from "~/services/billing.service";
 import type { PlanTier } from "@prisma/client";
-
-export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 interface LoaderData {
   plans: ReturnType<typeof getAllPlans>;
@@ -111,7 +107,7 @@ const PLAN_FEATURE_LIST: Record<string, string[]> = {
 };
 
 export default function BillingPaywall() {
-  const { plans, apiKey } = useLoaderData<LoaderData>();
+  const { plans } = useLoaderData<LoaderData>();
   const fetcher = useFetcher<{ error?: string }>();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
@@ -126,7 +122,6 @@ export default function BillingPaywall() {
   );
 
   return (
-    <AppProvider isEmbeddedApp apiKey={apiKey}>
     <Page narrowWidth>
       <BlockStack gap="600">
         <BlockStack gap="200" inlineAlign="center">
@@ -216,6 +211,5 @@ export default function BillingPaywall() {
         </Text>
       </BlockStack>
     </Page>
-    </AppProvider>
   );
 }

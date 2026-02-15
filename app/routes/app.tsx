@@ -25,8 +25,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin, billing } = await authenticate.admin(request);
 
   // ── Billing gate: require active subscription ──────────────
-  // Check if merchant has an active billing subscription
-  // If not, redirect to the billing paywall
+  // Skip billing check when already on the billing page to avoid redirect loop
+  const url = new URL(request.url);
+  const isBillingPage = url.pathname === "/app/billing";
+
   let hasActiveSubscription = false;
   let activePlanName: string | null = null;
 
@@ -42,7 +44,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // billing.check can fail if no subscription exists
   }
 
-  if (!hasActiveSubscription) {
+  if (!hasActiveSubscription && !isBillingPage) {
     // Redirect to billing paywall
     throw redirect("/app/billing");
   }
