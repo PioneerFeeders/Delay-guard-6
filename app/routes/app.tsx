@@ -24,24 +24,23 @@ interface LoaderData {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin, billing } = await authenticate.admin(request);
 
-  // — Billing gate: require active subscription via Managed Pricing —
-  // billing.check() works with Managed Pricing (no plans array needed)
-  let hasActiveSubscription = false;
-  let activePlanName: string | null = null;
+  // ── BILLING GATE TEMPORARILY BYPASSED FOR TESTING ──────────
+  // TODO: Re-enable once Managed Pricing plans are configured in Partner Dashboard
+  // 
+  // let hasActiveSubscription = false;
+  // let activePlanName: string | null = null;
+  //
+  // try {
+  //   const billingCheck = await billing.check();
+  //   hasActiveSubscription = billingCheck.hasActivePayment;
+  //   activePlanName = billingCheck.appSubscriptions?.[0]?.name ?? null;
+  // } catch {}
+  //
+  // if (!hasActiveSubscription) {
+  //   throw redirect("/app/billing");
+  // }
 
-  try {
-    const billingCheck = await billing.check();
-
-    hasActiveSubscription = billingCheck.hasActivePayment;
-    activePlanName = billingCheck.appSubscriptions?.[0]?.name ?? null;
-  } catch {
-    // billing.check can fail if no subscription exists
-  }
-
-  if (!hasActiveSubscription) {
-    // Redirect to billing passthrough route which handles iframe breakout
-    throw redirect("/app/billing");
-  }
+  let activePlanName: string | null = "Starter"; // Fake plan for testing
 
   // — Create/update merchant record —
   const shopifyShopId = session.shop;
@@ -82,14 +81,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       timezone,
     });
 
-    // Update shop status if it has changed
     if (merchant) {
       await updateShopStatus(merchant.id, {
         shopFrozen,
         shopPlanName,
       });
 
-      // Sync billing status with Shopify subscription
       if (activePlanName) {
         const tier = planNameToTier(activePlanName);
         if (tier && (merchant.planTier !== tier || merchant.billingStatus !== "ACTIVE")) {
@@ -106,7 +103,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  // Determine the plan tier for feature gating
   const planTier = activePlanName
     ? planNameToTier(activePlanName) || "STARTER"
     : "STARTER";
@@ -154,7 +150,6 @@ export default function App() {
   );
 }
 
-// Shopify needs Remix to catch some thrown responses, so that their headers are included in the response.
 export function ErrorBoundary() {
   return boundary.error(useRouteError());
 }
