@@ -24,17 +24,13 @@ interface LoaderData {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin, billing } = await authenticate.admin(request);
 
-  // ── Billing gate: require active subscription ──────────────
-  // Check if merchant has an active billing subscription
-  // If not, redirect to the billing paywall
+  // — Billing gate: require active subscription via Managed Pricing —
+  // billing.check() works with Managed Pricing (no plans array needed)
   let hasActiveSubscription = false;
   let activePlanName: string | null = null;
 
   try {
-    const billingCheck = await billing.check({
-      plans: ["Starter", "Professional", "Business", "Enterprise"],
-      isTest: process.env.NODE_ENV !== "production",
-    });
+    const billingCheck = await billing.check();
 
     hasActiveSubscription = billingCheck.hasActivePayment;
     activePlanName = billingCheck.appSubscriptions?.[0]?.name ?? null;
@@ -43,11 +39,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   if (!hasActiveSubscription) {
-    // Redirect to billing paywall
+    // Redirect to billing passthrough route which handles iframe breakout
     throw redirect("/app/billing");
   }
 
-  // ── Create/update merchant record ──────────────────────────
+  // — Create/update merchant record —
   const shopifyShopId = session.shop;
   const shopDomain = session.shop;
 
@@ -94,7 +90,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       });
 
       // Sync billing status with Shopify subscription
-      // This ensures the merchant record reflects the actual plan they're paying for
       if (activePlanName) {
         const tier = planNameToTier(activePlanName);
         if (tier && (merchant.planTier !== tier || merchant.billingStatus !== "ACTIVE")) {
