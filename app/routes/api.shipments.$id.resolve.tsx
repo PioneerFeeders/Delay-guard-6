@@ -5,7 +5,7 @@
  */
 
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { data } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { z } from "zod";
 import { authenticate } from "../shopify.server";
 import { prisma } from "../db.server";
@@ -41,14 +41,14 @@ const ResolveShipmentSchema = z.object({
  */
 export const action = async ({ request, params }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
-    return data({ error: "Method not allowed" }, { status: 405 });
+    return json({ error: "Method not allowed" }, { status: 405 });
   }
 
   const { session } = await authenticate.admin(request);
   const { id } = params;
 
   if (!id) {
-    return data({ error: "Shipment ID is required" }, { status: 400 });
+    return json({ error: "Shipment ID is required" }, { status: 400 });
   }
 
   // Parse and validate request body
@@ -58,12 +58,12 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     body = ResolveShipmentSchema.parse(rawBody);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return data(
+      return json(
         { error: "Validation failed", details: err.errors },
         { status: 400 }
       );
     }
-    return data({ error: "Invalid request body" }, { status: 400 });
+    return json({ error: "Invalid request body" }, { status: 400 });
   }
 
   // Get merchant
@@ -73,7 +73,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   });
 
   if (!merchant) {
-    return data({ error: "Merchant not found" }, { status: 404 });
+    return json({ error: "Merchant not found" }, { status: 404 });
   }
 
   // Resolve the shipment
@@ -86,10 +86,10 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   });
 
   if (!result.success) {
-    return data({ error: result.error }, { status: 400 });
+    return json({ error: result.error }, { status: 400 });
   }
 
-  return data({
+  return json({
     success: true,
     message: "Shipment resolved successfully",
     shipmentId: result.shipmentId,

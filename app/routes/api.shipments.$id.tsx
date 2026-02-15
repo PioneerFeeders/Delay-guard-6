@@ -6,7 +6,7 @@
  */
 
 import type { LoaderFunctionArgs } from "@remix-run/node";
-import { data } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { prisma } from "../db.server";
 
@@ -15,7 +15,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { id } = params;
 
   if (!id) {
-    return data({ error: "Shipment ID is required" }, { status: 400 });
+    return json({ error: "Shipment ID is required" }, { status: 400 });
   }
 
   // Get merchant
@@ -25,7 +25,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   });
 
   if (!merchant) {
-    return data({ error: "Merchant not found" }, { status: 404 });
+    return json({ error: "Merchant not found" }, { status: 404 });
   }
 
   // Fetch shipment with related data
@@ -48,7 +48,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   });
 
   if (!shipment) {
-    return data({ error: "Shipment not found" }, { status: 404 });
+    return json({ error: "Shipment not found" }, { status: 404 });
   }
 
   // Transform to API response format
@@ -114,5 +114,5 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     },
   };
 
-  return data(response);
+  return json(response);
 };

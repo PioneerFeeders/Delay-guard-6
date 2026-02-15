@@ -8,7 +8,7 @@
  */
 
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { data } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { authenticate } from "~/shopify.server";
 import { getMerchantByShopId } from "~/services/merchant.service";
 import {
@@ -33,7 +33,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // Get merchant
   const merchant = await getMerchantByShopId(session.shop);
   if (!merchant) {
-    return data(
+    return json(
       { error: "Merchant not found" },
       { status: 404 }
     );
@@ -63,7 +63,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       };
     }
 
-    return data({
+    return json({
       syncInProgress,
       totalShipments: status.totalShipments,
       delayedShipments: status.delayedShipments,
@@ -72,7 +72,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   } catch (error) {
     console.error("[api.sync] Error getting sync status:", error);
-    return data(
+    return json(
       { error: "Failed to get sync status" },
       { status: 500 }
     );
@@ -94,7 +94,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
  */
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== "POST") {
-    return data(
+    return json(
       { error: "Method not allowed" },
       { status: 405 }
     );
@@ -105,7 +105,7 @@ export async function action({ request }: ActionFunctionArgs) {
   // Get merchant
   const merchant = await getMerchantByShopId(session.shop);
   if (!merchant) {
-    return data(
+    return json(
       { error: "Merchant not found" },
       { status: 404 }
     );
@@ -113,7 +113,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   // Check if merchant billing allows syncing
   if (merchant.billingStatus === "CANCELLED") {
-    return data(
+    return json(
       {
         success: false,
         error: "Cannot sync: billing is cancelled",
@@ -126,7 +126,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // Check if a sync is already in progress
     const syncInProgress = await isSyncInProgress(merchant.id);
     if (syncInProgress) {
-      return data({
+      return json({
         success: false,
         message: "A sync is already in progress",
         alreadyInProgress: true,
@@ -149,7 +149,7 @@ export async function action({ request }: ActionFunctionArgs) {
       `[api.sync] Enqueued sync job ${job.id} for merchant ${merchant.id} (fullSync: ${fullSync})`
     );
 
-    return data({
+    return json({
       success: true,
       jobId: job.id,
       message: fullSync
@@ -158,7 +158,7 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   } catch (error) {
     console.error("[api.sync] Error triggering sync:", error);
-    return data(
+    return json(
       {
         success: false,
         error: "Failed to start sync",

@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { data } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { authenticate } from "~/shopify.server";
 import { prisma } from "~/db.server";
 import {
@@ -23,13 +23,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const merchant = await getMerchantByShopId(session.shop);
 
   if (!merchant) {
-    return data(
+    return json(
       { error: "Merchant not found" },
       { status: 404 }
     );
   }
 
-  return data({
+  return json({
     settings: merchant.settings,
   });
 }
@@ -46,7 +46,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
  */
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== "POST" && request.method !== "DELETE") {
-    return data(
+    return json(
       { error: "Method not allowed" },
       { status: 405 }
     );
@@ -57,7 +57,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const merchant = await getMerchantByShopId(session.shop);
 
   if (!merchant) {
-    return data(
+    return json(
       { error: "Merchant not found" },
       { status: 404 }
     );
@@ -68,7 +68,7 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     body = await request.json() as Record<string, unknown>;
   } catch {
-    return data(
+    return json(
       { error: "Invalid JSON body" },
       { status: 400 }
     );
@@ -108,14 +108,14 @@ export async function action({ request }: ActionFunctionArgs) {
         });
       }
 
-      return data({
+      return json({
         success: true,
         message: `Cleared ${testShipmentIds.length} test shipment(s)`,
         count: testShipmentIds.length,
       });
     } catch (error) {
       console.error("Failed to clear test data:", error);
-      return data(
+      return json(
         { error: "Failed to clear test data" },
         { status: 500 }
       );
@@ -126,7 +126,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const parseResult = SettingsUpdateSchema.safeParse(body);
 
   if (!parseResult.success) {
-    return data(
+    return json(
       {
         error: "Invalid settings",
         details: parseResult.error.flatten(),
@@ -139,13 +139,13 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const updated = await updateMerchantSettings(merchant.id, parseResult.data);
 
-    return data({
+    return json({
       success: true,
       settings: updated.settings,
     });
   } catch (error) {
     console.error("Failed to update merchant settings:", error);
-    return data(
+    return json(
       { error: "Failed to update settings" },
       { status: 500 }
     );

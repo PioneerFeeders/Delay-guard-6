@@ -6,7 +6,7 @@
  */
 
 import type { LoaderFunctionArgs } from "@remix-run/node";
-import { data } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { prisma } from "../db.server";
 import type { Prisma, Carrier } from "@prisma/client";
@@ -209,7 +209,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 
   if (!merchant) {
-    return data(
+    return json(
       { error: "Merchant not found" },
       { status: 404 }
     );
@@ -374,5 +374,5 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
   };
 
-  return data(response);
+  return json(response);
 };
