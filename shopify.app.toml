@@ -21,15 +21,7 @@ redirect_urls = [
 api_version = "2025-01"
 
 [[webhooks.subscriptions]]
-topics = ["fulfillments/create"]
-uri = "/webhooks/fulfillments/create"
-
-[[webhooks.subscriptions]]
-topics = ["fulfillments/update"]
-uri = "/webhooks/fulfillments/update"
-
-[[webhooks.subscriptions]]
-topics = ["app/uninstalled"]
+topics = ["fulfillments/create", "fulfillments/update", "app/uninstalled"]
 compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
 uri = "/webhooks"
 
